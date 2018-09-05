@@ -92,7 +92,7 @@ class OnlineGFMM(object):
                         if xX == 2:
                             drawing_canvas.plot(X_l[i, 0], X_l[i, 1], color = color_, marker=marker_)
                         else:
-                            drawing_canvas.plot(X_l[i, 0], X_l[i, 11], X_l[i, 2], color = color_, marker=marker_)
+                            drawing_canvas.plot(X_l[i, 0], X_l[i, 1], X_l[i, 2], color = color_, marker=marker_)
                     else:
                             drawbox(np.asmatrix(X_l[i, 0:np.minimum(xX, 3)]), np.asmatrix(X_u[i, 0:np.minimum(xX, 3)]), drawing_canvas, color_)
                         
