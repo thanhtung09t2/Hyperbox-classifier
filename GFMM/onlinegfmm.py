@@ -192,8 +192,11 @@ class OnlineGFMM(object):
             if result.summis > 0 and self.isDraw == True:
                 # Handle drawing graph
                 drawing_canvas.cla()
-                
-                drawbox(self.V[:, 0:np.minimum(xX, 3)], self.W[:, 0:np.minimum(xX, 3)], drawing_canvas, 'b')
+                color_ = np.empty(len(self.classId), dtype = object)
+                for c in range(len(self.classId)):
+                    color_[c] = mark_col[self.classId[c]]
+                    
+                drawbox(self.V[:, 0:np.minimum(xX, 3)], self.W[:, 0:np.minimum(xX, 3)], drawing_canvas, color_)
                 plt.pause(0.0001)
                 
         if self.isDraw:
