@@ -9,14 +9,14 @@ onlnGFMM - Online GFMM classifier (training core)
      OnlineGFMM(gamma, teta, tMin, isDraw, oper, V, W, classId)
   
    INPUT
-     V				Hyperbox lower bounds for the model to be updated using new data
-	  W				Hyperbox upper bounds for the model to be updated using new data
-     classId		Hyperbox class labels (crisp)  for the model to be updated using new data
-     gamma		Membership function slope (default: 1), datatype: array or scalar
-     teta			Maximum hyperbox size (default: 1)
-     tMin			Minimum value of Teta
-     isDraw	   Progress plot flag (default: False)
-     oper			Membership calculation operation: 'min' or 'prod' (default: 'min')
+     V          Hyperbox lower bounds for the model to be updated using new data
+     W          Hyperbox upper bounds for the model to be updated using new data
+     classId    Hyperbox class labels (crisp)  for the model to be updated using new data
+     gamma      Membership function slope (default: 1), datatype: array or scalar
+     teta       Maximum hyperbox size (default: 1)
+     tMin       Minimum value of Teta
+     isDraw     Progress plot flag (default: False)
+     oper       Membership calculation operation: 'min' or 'prod' (default: 'min')
 
 """
 import numpy as np
