@@ -19,14 +19,14 @@ def predict(V, W, classId, XlT, XuT, patClassIdTest, gama = 1, oper = 'min'):
       result = predict(V,W,classId,XlT,XuT,patClassIdTest,gama,oper)
   
     INPUT
-      V					Tested model hyperbox lower bounds
-      W					Tested model hyperbox upper bounds
+      V                 Tested model hyperbox lower bounds
+      W                 Tested model hyperbox upper bounds
       classId	          Input data (hyperbox) class labels (crisp)
-      XlT              Test data lower bounds (rows = objects, columns = features)
-      XuT              Test data upper bounds (rows = objects, columns = features)
-      patClassIdTest	Test data class labels (crisp)
-      gama             Membership function slope (default: 1)
-      oper				Membership calculation operation: 'min' or 'prod' (default: 'min')
+      XlT               Test data lower bounds (rows = objects, columns = features)
+      XuT               Test data upper bounds (rows = objects, columns = features)
+      patClassIdTest    Test data class labels (crisp)
+      gama              Membership function slope (default: 1)
+      oper              Membership calculation operation: 'min' or 'prod' (default: 'min')
   
    OUTPUT
       result           A object with Bunch datatype containing all results as follows:

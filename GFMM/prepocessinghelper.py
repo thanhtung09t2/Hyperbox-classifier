@@ -15,8 +15,8 @@ def normalize(A, new_range):
     Normalize the input dataset
     
     INPUT
-      A             Original dataset (numpy array) [rows are samples, cols are features]
-      new_range     The range of data after normalizing
+        A           Original dataset (numpy array) [rows are samples, cols are features]
+        new_range   The range of data after normalizing
    
     OUTPUT
         Normalized dataset
@@ -46,16 +46,16 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
         Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(path, percentTr, True, [0, 1])
     
     INPUT
-       path         the path to the data file (including file name)
-       percentTr    the percentage of data used for training (0 <= percentTr <= 1)
-       isNorm       identify whether normalizing datasets or not, True => Normalized
-       new_range    new range of datasets after normalization
+       path             the path to the data file (including file name)
+       percentTr        the percentage of data used for training (0 <= percentTr <= 1)
+       isNorm           identify whether normalizing datasets or not, True => Normalized
+       new_range        new range of datasets after normalization
 
     OUTPUT
-       Xtr             Training dataset
-       Xtest           Testing dataset
-       patClassIdTr    Training class labels
-       patClassIdTest  Testing class labels
+       Xtr              Training dataset
+       Xtest            Testing dataset
+       patClassIdTr     Training class labels
+       patClassIdTest   Testing class labels
        
     """
     A = np.array([], dtype=np.float_)

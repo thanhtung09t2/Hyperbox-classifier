@@ -16,10 +16,10 @@ def drawbox(low, up, plt, color = ['k']):
           han = drawbox(low,up)
   
     INPUT
-      low		Min point coordinates
-	   up		Max point coordinates
-      plt    plot object in pyplot
-      color  hyperboxes border colors
+      low       Min point coordinates
+      up        Max point coordinates
+      plt       plot object in pyplot
+      color     hyperboxes border colors
   
     OUTPUT
       han		Handles of the plotted objects

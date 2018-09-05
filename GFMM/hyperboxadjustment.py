@@ -16,13 +16,13 @@ def hyperboxOverlapTest(V, W, ind, testInd):
       dim = overlapTest(V, W, ind, testInd)
   
     INPUT
-        V				Hyperbox lower bounds
-        W				Hyperbox upper bounds
-        ind			Index of extended hyperbox
-        testInd		Index of hyperbox to test for overlap with the extended hyperbox
+        V           Hyperbox lower bounds
+        W           Hyperbox upper bounds
+        ind         Index of extended hyperbox
+        testInd     Index of hyperbox to test for overlap with the extended hyperbox
 
     OUTPUT
-        dim			Result to be fed into contrG1, which is special numpy array
+        dim         Result to be fed into contrG1, which is special numpy array
 
     """
     dim = np.array([]);
@@ -79,9 +79,9 @@ def hyperboxContraction(V1, W1, newCD, testedInd, ind):
       V, W = hyperboxContraction(V,W,newCD,testedInd,ind)
   
     INPUT
-      V1			    Lower bounds of existing hyperboxes
-      W1			    Upper bounds of existing hyperboxes
-      newCD		    Special parameters, output from overlapTest
+      V1            Lower bounds of existing hyperboxes
+      W1            Upper bounds of existing hyperboxes
+      newCD         Special parameters, output from overlapTest
       testedInd     Index of hyperbox to test for overlap with the extended hyperbox
       ind           Index of extended hyperbox	
    

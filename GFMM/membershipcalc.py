@@ -16,12 +16,12 @@ def memberG(X_l, X_u, V, W, g, oper = 'min'):
         b = memberG(X_l, X_u, V, W, g, oper)
  
    INPUT
-     X_l		Input data lower bounds (a row vector with columns being features)
-     X_u		Input data upper bounds (a row vector with columns being features)
-     V			Hyperbox lower bounds
-	  W			Hyperbox upper bounds
-	  g			User defined sensitivity parameter 
-	  oper		Membership calculation operation: 'min' or 'prod' (default: 'min')
+     X_l        Input data lower bounds (a row vector with columns being features)
+     X_u        Input data upper bounds (a row vector with columns being features)
+     V          Hyperbox lower bounds
+     W          Hyperbox upper bounds
+     g          User defined sensitivity parameter 
+     oper       Membership calculation operation: 'min' or 'prod' (default: 'min')
   
    OUTPUT
      b			Degrees of membership of the input pattern
@@ -62,9 +62,9 @@ def fofmemb(x, gama):
      f			Fuzzy membership values
 
    DESCRIPTION
-    	f = 1,	if x*gama > 1
-    	x*gama,	if 0 =< x*gama <= 1
-    	0,		if x*gama < 0
+    	f = 1,     if x*gama > 1
+    	x*gama,    if 0 =< x*gama <= 1
+    	0,         if x*gama < 0
     """
 
     if np.size(gama) > 1: 

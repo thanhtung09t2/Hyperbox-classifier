@@ -213,9 +213,9 @@ class OnlineGFMM(object):
             result = predict(Xl_Test, Xu_Test, patClassIdTest)
         
         INPUT:
-            Xl_Test:            Test data lower bounds (rows = objects, columns = features)
-            Xu_Test:            Test data upper bounds (rows = objects, columns = features)
-            patClassIdTest	      Test data class labels (crisp)
+            Xl_Test             Test data lower bounds (rows = objects, columns = features)
+            Xu_Test             Test data upper bounds (rows = objects, columns = features)
+            patClassIdTest	     Test data class labels (crisp)
             
         OUTPUT:
             result        A object with Bunch datatype containing all results as follows:
