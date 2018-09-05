@@ -6,16 +6,17 @@ Created on Thu Aug 30 22:39:47 2018
 
 onlnGFMM - Online GFMM classifier (training core)
 
-     OnlineGFMM(gamma, teta, tMin, isDraw, V, W, classId)
+     OnlineGFMM(gamma, teta, tMin, isDraw, oper, V, W, classId)
   
    INPUT
      V				Hyperbox lower bounds for the model to be updated using new data
-	 W				Hyperbox upper bounds for the model to be updated using new data
+	  W				Hyperbox upper bounds for the model to be updated using new data
      classId		Hyperbox class labels (crisp)  for the model to be updated using new data
-     gamma			Membership function slope (default: 1), datatype: array or scalar
+     gamma		Membership function slope (default: 1), datatype: array or scalar
      teta			Maximum hyperbox size (default: 1)
      tMin			Minimum value of Teta
-     isDraw	        Progress plot flag (default: False)
+     isDraw	   Progress plot flag (default: False)
+     oper			Membership calculation operation: 'min' or 'prod' (default: 'min')
 
 """
 import numpy as np
@@ -30,7 +31,7 @@ from prepocessinghelper import loadDataset
 
 class OnlineGFMM(object):
     
-    def __init__(self, gamma = 1, teta = 1, tMin = 1, isDraw = False, V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int16)):
+    def __init__(self, gamma = 1, teta = 1, tMin = 1, isDraw = False, oper = 'min', V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int16)):
         self.gamma = gamma
         self.teta = teta
         self.tMin = tMin
@@ -38,6 +39,7 @@ class OnlineGFMM(object):
         self.W = W
         self.classId = classId
         self.isDraw = isDraw
+        self.oper = oper
         self.misclass = 1
         
     def fit(self, X_l, X_u, patClassId):
@@ -187,7 +189,7 @@ class OnlineGFMM(object):
                             
            						
             teta = teta * 0.9           
-            result = predict(self.V, self.W, self.classId, X_l, X_u, patClassId, self.gamma)
+            result = predict(self.V, self.W, self.classId, X_l, X_u, patClassId, self.gamma, self.oper)
             
             if result.summis > 0 and self.isDraw == True:
                 # Handle drawing graph
@@ -204,8 +206,40 @@ class OnlineGFMM(object):
 
         return self
     
+    def predict(self, Xl_Test, Xu_Test, patClassIdTest):
+        """
+        Perform classification
+        
+            result = predict(Xl_Test, Xu_Test, patClassIdTest)
+        
+        INPUT:
+            Xl_Test:            Test data lower bounds (rows = objects, columns = features)
+            Xu_Test:            Test data upper bounds (rows = objects, columns = features)
+            patClassIdTest	      Test data class labels (crisp)
+            
+        OUTPUT:
+            result        A object with Bunch datatype containing all results as follows:
+                          + summis           Number of misclassified objects
+                          + misclass         Binary error map
+                          + sumamb           Number of objects with maximum membership in more than one class
+                          + out              Soft class memberships
+                          + mem              Hyperbox memberships
+        """
+        result = predict(self.V, self.W, self.classId, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)
+        
+        return result
+        
+        
 if __name__ == '__main__':
-    Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset('synthetic_train.dat', 1, False)
+    Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset('synthetic_train.dat', 1, False)
     classifier = OnlineGFMM(1, 0.6, 0.6, True)
     classifier.fit(Xtr, Xtr, patClassIdTr)
+    
+    # Testing
+    X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset('synthetic_test.dat', 0, False)
+    print("-- Testing --")
+    result = classifier.predict(Xtest, Xtest, patClassIdTest)
+    print("Number of wrong predicted samples = ", result.summis)
+    numTestSample = Xtest.shape[0]
+    print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")
                     

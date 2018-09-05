@@ -99,6 +99,8 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
         Xtr = np.vstack((Xtr, Xtr_tmp))
         patClassId_tmp = np.full(noTrain, classLabels[k], dtype=np.int16)
         patClassIdTr = np.append(patClassIdTr, patClassId_tmp)
+        
+        patClassId_tmp = np.full(len(idx) - noTrain, classLabels[k], dtype=np.int16)
         Xtest = np.vstack((Xtest, X_data[idx[noTrain:len(idx)], :]))
         patClassIdTest = np.append(patClassIdTest, patClassId_tmp)
         
