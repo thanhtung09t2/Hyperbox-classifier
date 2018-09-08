@@ -93,7 +93,8 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
         if percentTr != 1 and percentTr != 0:
             idx = idx[np.random.permutation(len(idx))] 
 
-        noTrain = np.round(len(idx) * percentTr);
+        noTrain = int(len(idx) * percentTr + 0.5)
+
         # Attach data of class k to corresponding datasets
         Xtr_tmp = X_data[idx[0:noTrain], :]
         Xtr = np.vstack((Xtr, Xtr_tmp))

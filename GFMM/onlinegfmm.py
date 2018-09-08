@@ -19,7 +19,11 @@ onlnGFMM - Online GFMM classifier (training core)
      oper       Membership calculation operation: 'min' or 'prod' (default: 'min')
 
 """
+import sys
 import numpy as np
+import matplotlib
+matplotlib.use('TKAgg')
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -41,6 +45,7 @@ class OnlineGFMM(object):
         self.isDraw = isDraw
         self.oper = oper
         self.misclass = 1
+        self.delayConstant = 0.001 # delay time period to display hyperboxes on the canvas
         
     def fit(self, X_l, X_u, patClassId):
         """
@@ -58,9 +63,12 @@ class OnlineGFMM(object):
         mark = np.array(['*', 'o', 'x', '+', '.', ',', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', 'h', 'H', 'X', 'D', '|', '_'])
         mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
         
-        han = np.empty(yX, dtype=object)
+        listLines = list()
+        listInputSamplePoints = list();
+        
         if self.isDraw:
             fig = plt.figure(0)
+            plt.ion()
             if xX == 2:
                 drawing_canvas = fig.add_subplot(1, 1, 1)
                 drawing_canvas.axis([0, 1, 0, 1])
@@ -76,9 +84,10 @@ class OnlineGFMM(object):
                 classOfX = patClassId[i]
                 # draw input samples
                 if self.isDraw:
-                    if i == 0:
-                        # reset graph view
-                        drawing_canvas.cla()
+                    if i == 0 and len(listInputSamplePoints) > 0:
+                        # reset input point drawing
+                        for point in listInputSamplePoints:
+                            point.remove()
                     
                     color_ = 'k'
                     if classOfX < len(mark_col):
@@ -90,13 +99,16 @@ class OnlineGFMM(object):
                             marker_ = mark[classOfX]
                             
                         if xX == 2:
-                            drawing_canvas.plot(X_l[i, 0], X_l[i, 1], color = color_, marker=marker_)
+                            inputPoint = drawing_canvas.plot(X_l[i, 0], X_l[i, 1], color = color_, marker=marker_)
                         else:
-                            drawing_canvas.plot(X_l[i, 0], X_l[i, 1], X_l[i, 2], color = color_, marker=marker_)
-                    else:
-                            drawbox(np.asmatrix(X_l[i, 0:np.minimum(xX, 3)]), np.asmatrix(X_u[i, 0:np.minimum(xX, 3)]), drawing_canvas, color_)
+                            inputPoint = drawing_canvas.plot(X_l[i, 0], X_l[i, 1], X_l[i, 2], color = color_, marker=marker_)
                         
-                    plt.pause(0.001)
+                        #listInputSamplePoints.append(inputPoint)
+                    else:
+                        inputPoint = drawbox(np.asmatrix(X_l[i, 0:np.minimum(xX, 3)]), np.asmatrix(X_u[i, 0:np.minimum(xX, 3)]), drawing_canvas, color_)
+                        
+                    listInputSamplePoints.append(inputPoint[0])
+                    plt.pause(self.delayConstant)
                     
                 if self.V.size == 0:   # no model provided - starting from scratch
                     self.V = np.array([X_l[0]])
@@ -109,14 +121,14 @@ class OnlineGFMM(object):
                         if patClassId[0] < len(mark_col):
                             box_color = mark_col[patClassId[0]]
                         
-                        han[0] = drawbox(np.asmatrix(self.V[0, 0:np.minimum(xX,3)]), np.asmatrix(self.W[0, 0:np.minimum(xX,3)]), drawing_canvas, box_color)
-                        plt.pause(0.001)
+                        hyperbox = drawbox(np.asmatrix(self.V[0, 0:np.minimum(xX,3)]), np.asmatrix(self.W[0, 0:np.minimum(xX,3)]), drawing_canvas, box_color)
+                        listLines.append(hyperbox[0])
+                        plt.pause(self.delayConstant)
 
                 else:
                     #print('Cheer!!!')
                     b = memberG(X_l[i], X_u[i], self.V, self.W, self.gamma)
                         
-                    #print(b.shape)
                     index = np.argsort(b);
                     bSort = b[index];
                     
@@ -139,13 +151,18 @@ class OnlineGFMM(object):
                                 
                                 if self.isDraw:
                                     # Handle drawing graph
-                                    #drawing_canvas.lines.remove(han[j])
                                     box_color = 'k'
                                     if self.classId[j] < len(mark_col):
                                         box_color = mark_col[self.classId[j]]
-                                        
-                                    han[j] = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
-                                    plt.pause(0.001)
+                                    
+                                    try:
+                                        listLines[j].remove()
+                                    except:
+                                        pass
+                                    
+                                    hyperbox = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)                                 
+                                    listLines[j] = hyperbox[0]
+                                    plt.pause(self.delayConstant)
                                     
                                 break
                                 
@@ -154,20 +171,18 @@ class OnlineGFMM(object):
                             self.V = np.vstack((self.V, X_l[i]))
                             self.W = np.vstack((self.W, X_u[i]))
                             self.classId = np.append(self.classId, classOfX)
-                            #indOfWinner = b.size + 1
-                            #adjust = True
-                            #print('Add new')
+
                             if self.isDraw:
                                 # handle drawing graph
                                 box_color = 'k'
                                 if self.classId[-1] < len(mark_col):
                                     box_color = mark_col[self.classId[-1]]
                                     
-                                han[b.size + 1] = drawbox(np.asmatrix(X_l[i, 0:np.minimum(xX, 3)]), np.asmatrix(X_u[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
-                                plt.pause(0.001)
+                                hyperbox = drawbox(np.asmatrix(X_l[i, 0:np.minimum(xX, 3)]), np.asmatrix(X_u[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
+                                listLines.append(hyperbox[0])
+                                plt.pause(self.delayConstant)
                                 
                         elif self.V.shape[0] > 1:
-                            #print('Expend')
                             for ii in range(self.V.shape[0]):
                                 if ii != indOfWinner:
                                     caseDim = hyperboxOverlapTest(self.V, self.W, indOfWinner, ii)		# overlap test
@@ -176,31 +191,40 @@ class OnlineGFMM(object):
                                         self.V, self.W = hyperboxContraction(self.V, self.W, caseDim, ii, indOfWinner)
                                         if self.isDraw:
                                             # Handle graph drawing
-                                            #drawing_canvas.artists.remove(han[ii, indOfWinner])
                                             boxii_color = boxwin_color = 'k'
                                             if self.classId[ii] < len(mark_col):
                                                 boxii_color = mark_col[self.classId[ii]]
                                             
                                             if self.classId[indOfWinner] < len(mark_col):
                                                 boxwin_color = mark_col[self.classId[indOfWinner]]
-                                                
-                                            han[[ii, indOfWinner]] = drawbox(self.V[[ii, indOfWinner], 0:np.minimum(xX, 3)], self.W[[ii, indOfWinner], 0:np.minimum(xX, 3)], drawing_canvas, [boxii_color, boxwin_color])
-                                            plt.pause(0.001)
+                                            
+                                            try:
+                                                listLines[ii].remove()                                           
+                                                listLines[indOfWinner].remove()
+                                            except:
+                                                pass
+                                            
+                                            hyperboxes = drawbox(self.V[[ii, indOfWinner], 0:np.minimum(xX, 3)], self.W[[ii, indOfWinner], 0:np.minimum(xX, 3)], drawing_canvas, [boxii_color, boxwin_color])                                          
+                                            listLines[ii] = hyperboxes[0]
+                                            listLines[indOfWinner] = hyperboxes[1]                                      
+                                            plt.pause(self.delayConstant)
                             
            						
-            teta = teta * 0.9           
+            teta = teta * 0.9
             result = predict(self.V, self.W, self.classId, X_l, X_u, patClassId, self.gamma, self.oper)
-            
-            if result.summis > 0 and self.isDraw == True:
-                # Handle drawing graph
-                drawing_canvas.cla()
-                color_ = np.empty(len(self.classId), dtype = object)
-                for c in range(len(self.classId)):
-                    color_[c] = mark_col[self.classId[c]]
-                    
-                drawbox(self.V[:, 0:np.minimum(xX, 3)], self.W[:, 0:np.minimum(xX, 3)], drawing_canvas, color_)
-                plt.pause(0.0001)
-                
+            self.misclass = result.summis
+
+        # Draw last result  
+#        if self.isDraw == True:
+#            # Handle drawing graph
+#            drawing_canvas.cla()
+#            color_ = np.empty(len(self.classId), dtype = object)
+#            for c in range(len(self.classId)):
+#                color_[c] = mark_col[self.classId[c]]
+#                
+#            drawbox(self.V[:, 0:np.minimum(xX, 3)], self.W[:, 0:np.minimum(xX, 3)], drawing_canvas, color_)
+#            plt.pause(self.delayConstant)
+#                
         if self.isDraw:
             plt.show()
 
@@ -231,15 +255,49 @@ class OnlineGFMM(object):
         
         
 if __name__ == '__main__':
-    Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset('synthetic_train.dat', 1, False)
-    classifier = OnlineGFMM(1, 0.6, 0.6, True)
-    classifier.fit(Xtr, Xtr, patClassIdTr)
+    """
+    INPUT parameters from command line
+    arg1: + 1 - training and testing datasets are located in separated files
+          + 2 - training and testing datasets are located in the same files
+    arg2: path to file containing the training dataset (arg1 = 1) or both training and testing datasets (arg1 = 2)
+    arg3: + path to file containing the testing dataset (arg1 = 1)
+          + percentage of the training dataset in the input file
+    arg4: + True: drawing hyperboxes during the training process
+          + False: no drawing
+    """
+    # TODO: define more parameters for isNorm, normalization_ranging, gamma, teta, teta_min, oper
+    if sys.argv[4] == "True" or sys.argv[4] == "true":
+        isDraw = True
+    elif sys.argv[4] == "False" or sys.argv[4] == "false":
+        isDraw = False
+    else:
+        raise ValueError
+    
+    if sys.argv[1] == '1':
+        training_file = sys.argv[2]
+        testing_file = sys.argv[3]
+
+        # Read training file
+        Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset(training_file, 1, False)
+        # Read testing file
+        X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
+    
+        classifier = OnlineGFMM(1, 0.6, 0.5, isDraw)
+        classifier.fit(Xtr, Xtr, patClassIdTr)
+    
+    else:
+        dataset_file = sys.argv[2]
+        percent_Training = float(sys.argv[3])
+        Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(dataset_file, percent_Training, False)
+        
+        classifier = OnlineGFMM(1, 0.6, 0.5, isDraw)
+        classifier.fit(Xtr, Xtr, patClassIdTr)
     
     # Testing
-    X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset('synthetic_test.dat', 0, False)
     print("-- Testing --")
     result = classifier.predict(Xtest, Xtest, patClassIdTest)
     print("Number of wrong predicted samples = ", result.summis)
     numTestSample = Xtest.shape[0]
     print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")
-                    
+   
+        
