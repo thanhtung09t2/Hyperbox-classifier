@@ -305,7 +305,6 @@ if __name__ == '__main__':
     arg9: + do normalization of datasets or not? True: Normilize, False: No normalize (default: True)
     arg10: + range of input values after normalization (default: [0, 1])   
     """
-    # TODO: define more parameters for isNorm, normalization_ranging, gamma, teta, teta_min, oper
     # Init default parameters
     if len(sys.argv) < 5:
         isDraw = False
