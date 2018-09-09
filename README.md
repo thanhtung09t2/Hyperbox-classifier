@@ -25,6 +25,8 @@ Example:
 
     python onlinegfmm.py 1 synthetic_train.dat synthetic_test.dat True 0.6 0.5 1 min True "[0, 1]"
     
+![alt text](https://github.com/thanhtung09t2/Hyperbox-classifier/blob/master/Images/Demo.PNG)
+    
 If using Spyder to run the source, let config as follows:
 
 From <b>Run/Configuration</b> per file or press <b>Ctr+F6</b>, on the open window, check on <b>Command line options</b> and input the input parameters such as: <i>1 synthetic_train.dat synthetic_test.dat True 0.6 0.5 1 min True "[0, 1]"</i>.
