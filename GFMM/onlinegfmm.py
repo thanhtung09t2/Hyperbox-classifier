@@ -6,23 +6,25 @@ Created on Thu Aug 30 22:39:47 2018
 
 onlnGFMM - Online GFMM classifier (training core)
 
-     OnlineGFMM(gamma, teta, tMin, isDraw, oper, V, W, classId)
+     OnlineGFMM(gamma, teta, tMin, isDraw, oper, V, W, classId, isNorm, norm_range)
   
    INPUT
-     V          Hyperbox lower bounds for the model to be updated using new data
-     W          Hyperbox upper bounds for the model to be updated using new data
-     classId    Hyperbox class labels (crisp)  for the model to be updated using new data
-     gamma      Membership function slope (default: 1), datatype: array or scalar
-     teta       Maximum hyperbox size (default: 1)
-     tMin       Minimum value of Teta
-     isDraw     Progress plot flag (default: False)
-     oper       Membership calculation operation: 'min' or 'prod' (default: 'min')
-
+     V              Hyperbox lower bounds for the model to be updated using new data
+     W              Hyperbox upper bounds for the model to be updated using new data
+     classId        Hyperbox class labels (crisp)  for the model to be updated using new data
+     gamma          Membership function slope (default: 1), datatype: array or scalar
+     teta           Maximum hyperbox size (default: 1)
+     tMin           Minimum value of Teta
+     isDraw         Progress plot flag (default: False)
+     oper           Membership calculation operation: 'min' or 'prod' (default: 'min')
+     isNorm         Do normalization of input training samples or not?
+     norm_range     New ranging of input data after normalization    
 """
 import sys
+import ast
 import numpy as np
 import matplotlib
-matplotlib.use('TKAgg')
+matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -32,10 +34,11 @@ from hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
 from classification import predict
 from drawinghelper import drawbox
 from prepocessinghelper import loadDataset
+from prepocessinghelper import normalize
 
 class OnlineGFMM(object):
     
-    def __init__(self, gamma = 1, teta = 1, tMin = 1, isDraw = False, oper = 'min', V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int16)):
+    def __init__(self, gamma = 1, teta = 1, tMin = 1, isDraw = False, oper = 'min', isNorm = False, norm_range = [0, 1], V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int16)):
         self.gamma = gamma
         self.teta = teta
         self.tMin = tMin
@@ -45,6 +48,9 @@ class OnlineGFMM(object):
         self.isDraw = isDraw
         self.oper = oper
         self.misclass = 1
+        self.isNorm = isNorm
+        self.loLim = norm_range[0]
+        self.hiLim = norm_range[1]
         self.delayConstant = 0.001 # delay time period to display hyperboxes on the canvas
         
     def fit(self, X_l, X_u, patClassId):
@@ -62,6 +68,17 @@ class OnlineGFMM(object):
         
         mark = np.array(['*', 'o', 'x', '+', '.', ',', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', 'h', 'H', 'X', 'D', '|', '_'])
         mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
+        
+        # Normalize input samples if needed
+        if X_l.min() < self.loLim or X_u.min() < self.loLim or X_u.max() > self.hiLim or X_l.max() > self.hiLim:
+            self.mins = X_l.min(axis = 0) # get min value of each feature
+            self.maxs = X_u.max(axis = 0) # get max value of each feature
+            X_l = normalize(X_l, [self.loLim, self.hiLim])
+            X_u = normalize(X_u, [self.loLim, self.hiLim])
+        else:
+            self.isNorm = False
+            self.mins = []
+            self.maxs = []
         
         listLines = list()
         listInputSamplePoints = list();
@@ -126,7 +143,6 @@ class OnlineGFMM(object):
                         plt.pause(self.delayConstant)
 
                 else:
-                    #print('Cheer!!!')
                     b = memberG(X_l[i], X_u[i], self.V, self.W, self.gamma)
                         
                     index = np.argsort(b);
@@ -249,10 +265,28 @@ class OnlineGFMM(object):
                           + out              Soft class memberships
                           + mem              Hyperbox memberships
         """
+        # Normalize testing dataset if training datasets were normalized
+        if len(self.mins) > 0:
+            noSamples = Xl_Test.shape[0]
+            Xl_Test = self.loLim + (self.hiLim - self.loLim) * (Xl_Test - np.ones((noSamples, 1)) * self.mins) / (np.ones((noSamples, 1)) * (self.maxs - self.mins))
+            Xu_Test = self.loLim + (self.hiLim - self.loLim) * (Xu_Test - np.ones((noSamples, 1)) * self.mins) / (np.ones((noSamples, 1)) * (self.maxs - self.mins))
+            
+            if Xl_Test.min() < self.loLim or Xu_Test.min() < self.loLim or Xl_Test.max() > self.hiLim or Xu_Test.max() > self.hiLim:
+                print('Test sample falls ousitde', self.loLim, '-', self.hiLim, 'interval')
+                return
+            
+        # do classification
         result = predict(self.V, self.W, self.classId, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)
         
         return result
-        
+ 
+def string_to_boolean(st):
+    if st == "True" or st == "true":
+        return True
+    elif st == "False" or st == "false":
+        return False
+    else:
+        raise ValueError
         
 if __name__ == '__main__':
     """
@@ -264,14 +298,51 @@ if __name__ == '__main__':
           + percentage of the training dataset in the input file
     arg4: + True: drawing hyperboxes during the training process
           + False: no drawing
+    arg5: + Maximum size of hyperboxes (teta, default: 1)
+    arg6: + The minimum value of maximum size of hyperboxes (teta_min: default = teta)
+    arg7: + gamma value (default: 1)
+    arg8: operation used to compute membership value: 'min' or 'prod' (default: 'min')
+    arg9: + do normalization of datasets or not? True: Normilize, False: No normalize (default: True)
+    arg10: + range of input values after normalization (default: [0, 1])   
     """
     # TODO: define more parameters for isNorm, normalization_ranging, gamma, teta, teta_min, oper
-    if sys.argv[4] == "True" or sys.argv[4] == "true":
-        isDraw = True
-    elif sys.argv[4] == "False" or sys.argv[4] == "false":
+    # Init default parameters
+    if len(sys.argv) < 5:
         isDraw = False
     else:
-        raise ValueError
+        isDraw = string_to_boolean(sys.argv[4])
+    
+    if len(sys.argv) < 6:
+        teta = 1    
+    else:
+        teta = float(sys.argv[5])
+    
+    if len(sys.argv) < 7:
+        teta_min = teta
+    else:
+        teta_min = float(sys.argv[6])
+    
+    if len(sys.argv) < 8:
+        gamma = 1
+    else:
+        gamma = float(sys.argv[7])
+    
+    if len(sys.argv) < 9:
+        oper = 'min'
+    else:
+        oper = sys.argv[8]
+    
+    if len(sys.argv) < 10:
+        isNorm = True
+    else:
+        isNorm = string_to_boolean(sys.argv[9])
+    
+    if len(sys.argv) < 11:
+        norm_range = [0, 1]
+    else:
+        norm_range = ast.literal_eval(sys.argv[10])
+    
+    print('isDraw = ', isDraw, ' teta = ', teta, ' teta_min = ', teta_min, ' gamma = ', gamma, ' oper = ', oper, ' isNorm = ', isNorm, ' norm_range = ', norm_range)
     
     if sys.argv[1] == '1':
         training_file = sys.argv[2]
@@ -282,7 +353,7 @@ if __name__ == '__main__':
         # Read testing file
         X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
     
-        classifier = OnlineGFMM(1, 0.6, 0.5, isDraw)
+        classifier = OnlineGFMM(gamma, teta, teta_min, isDraw, oper, isNorm, norm_range)
         classifier.fit(Xtr, Xtr, patClassIdTr)
     
     else:
@@ -290,14 +361,15 @@ if __name__ == '__main__':
         percent_Training = float(sys.argv[3])
         Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(dataset_file, percent_Training, False)
         
-        classifier = OnlineGFMM(1, 0.6, 0.5, isDraw)
+        classifier = OnlineGFMM(gamma, teta, teta_min, isDraw, oper, isNorm, norm_range)
         classifier.fit(Xtr, Xtr, patClassIdTr)
     
     # Testing
     print("-- Testing --")
     result = classifier.predict(Xtest, Xtest, patClassIdTest)
-    print("Number of wrong predicted samples = ", result.summis)
-    numTestSample = Xtest.shape[0]
-    print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")
+    if result != None:
+        print("Number of wrong predicted samples = ", result.summis)
+        numTestSample = Xtest.shape[0]
+        print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")
    
         
