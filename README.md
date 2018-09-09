@@ -1,5 +1,5 @@
 # Hyperbox-classifier
-Implementation of classifiers based on hyper-box representation
+<b>Implementation of classifiers based on hyper-box representation</b>
 
 Instruction of executing the online version of GFMM (file: onlinegfmm.py):
 
