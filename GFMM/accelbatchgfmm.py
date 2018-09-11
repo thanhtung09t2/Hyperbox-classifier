@@ -29,15 +29,17 @@ Created on Mon Sep 10 09:42:14 2018
 """
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from matrixhelper import delete_const_dims, pca_transform
-from prepocessinghelper import normalize
+from prepocessinghelper import normalize, loadDataset
 from membershipcalc import asym_similarity_one_many, memberG
 from drawinghelper import drawbox
+from hyperboxadjustment import isOverlap
+from classification import predict
 
 class AccelBatchGFMM(object):
     
@@ -122,7 +124,7 @@ class AccelBatchGFMM(object):
                 drawing_canvas.set_zlim3d(0, 1)
                 
             # plot initial hyperbox
-            Vt, Wt = pcatransform()
+            Vt, Wt = self.pcatransform()
             color_ = np.empty(len(self.classId), dtype = object)
             for c in range(len(self.classId)):
                 color_[c] = mark_col[self.classId[c]]
@@ -140,12 +142,124 @@ class AccelBatchGFMM(object):
                 elif self.simil == 'long':
                     b = memberG(self.V[k], self.W[k], self.W, self.V, self.gamma, self.oper)
                 else:
-                    b = asym_similarity_one_many(self.V[k], self.W[k], self.V, self.W, self.g, self.sing, self.oper)
+                    b = asym_similarity_one_many(self.V[k], self.W[k], self.V, self.W, self.gamma, self.sing, self.oper)
                 
+                indB = np.argsort(b)[::-1]
+                sortB = b[indB]
+                maxB = sortB[sortB >= self.bthres]	# apply membership threshold
+                
+                if len(maxB) > 0:
+                    indmaxB = indB[sortB >= self.bthres]
+                    # remove self-membership
+                    idx_k = np.where(indmaxB == k)[0]
+                    maxB = np.delete(maxB, idx_k)
+                    indmaxB = np.delete(indmaxB, idx_k)
+                    
+                    # remove memberships to boxes from other classes
+                    #print('k = ', k)
+                    idx_other_classes = np.where(np.logical_and(self.classId[indmaxB] != self.classId[k], self.classId[indmaxB] != 0))
+                    np.delete(maxB, idx_other_classes)
+                    # leaving memeberships to unlabelled boxes
+                    np.delete(indmaxB, idx_other_classes)
+                
+                    pairewise_maxb = np.hstack((np.minimum(k, indmaxB).reshape(-1, 1), np.maximum(k,indmaxB).reshape(-1, 1), maxB.reshape(-1, 1)))
+                    
+                    for i in range(pairewise_maxb.shape[0]):
+                        # calculate new coordinates of k-th hyperbox by including pairewise_maxb(i,1)-th box, scrap the latter and leave the rest intact
+                        # agglomorate pairewise_maxb(i, 0) and pairewise_maxb(i, 1) by adjusting pairewise_maxb(i, 0)
+                        # remove pairewise_maxb(i, 1) by getting newV from 1 -> pairewise_maxb(i, 0) - 1, new coordinates for pairewise_maxb(i, 0), from pairewise_maxb(i, 0) + 1 -> pairewise_maxb(i, 1) - 1, pairewise_maxb(i, 1) + 1 -> end
+                        newV = np.vstack((self.V[0:pairewise_maxb[i, 0], :], np.minimum(self.V[pairewise_maxb[i, 0], :], self.V[pairewise_maxb[i, 1], :]), self.V[pairewise_maxb[i, 0] + 1:pairewise_maxb[i, 1], :], self.V[pairewise_maxb[i, 1] + 1:, :]))
+                        newW = np.vstack((self.W[0:pairewise_maxb[i, 0], :], np.maximum(self.W[pairewise_maxb[i, 0], :], self.W[pairewise_maxb[i, 1], :]), self.W[pairewise_maxb[i, 0] + 1:pairewise_maxb[i, 1], :], self.W[pairewise_maxb[i, 1] + 1:, :]))
+                        newClassId = np.hstack((self.classId[0:pairewise_maxb[i, 0]], self.classId[pairewise_maxb[i, 1] + 1:]))
+                        
+                        # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
+                        # position of adjustment is pairewise_maxb[i, 0] in new bounds
+                        if not isOverlap(newV, newW, pairewise_maxb[i, 0], newClassId) and ((newW[pairewise_maxb[i, 0], :] - newV[pairewise_maxb[i, 0],:]) <= self.teta).all() == True:
+                            self.V = newV
+                            self.W = newW
+                            self.classId = newClassId
+                            
+                            self.cardin[pairewise_maxb[i, 0]] = self.cardin[pairewise_maxb[i, 0]] + self.cardin[pairewise_maxb[i, 1]]
+                            np.delete(self.cardin, pairewise_maxb[i, 1])
+                            
+                            self.clusters[pairewise_maxb[i, 0]] = np.append(self.clusters[pairewise_maxb[i, 0]], self.clusters[pairewise_maxb[i, 1]])
+                            np.delete(self.clusters, pairewise_maxb[i, 1])
+                            
+                            isTraining = True
+                            
+                            if k != pairewise_maxb[i, 1]:
+                                k = k - 1
+                                
+                            if self.isDraw:
+                                hyperboxes[pairewise_maxb[i, 1]].remove()
+                                hyperboxes[pairewise_maxb[i, 0]].remove()
+                                
+                                Vt, Wt = self.pcatransform()
+                                
+                                box_color = 'k'
+                                if self.classId[pairewise_maxb[i, 0]] < len(mark_col):
+                                    box_color = mark_col[self.classId[pairewise_maxb[i, 0]]]
+                                        
+                                box = drawbox(Vt[pairewise_maxb[i, 0], :], Wt[pairewise_maxb[i, 0], :], drawing_canvas, box_color)
+                                hyperboxes[pairewise_maxb[i, 0]] = box[0]
+                                np.delete(hyperboxes, pairewise_maxb[i, 1])
+                                
+                            break # if hyperbox adjusted there's no need to look at other hyperboxes
+                            
+                        
+                k = k + 1
             
-        # remove self-membership
-        # idx_k = np.where(indmaxB == k)[0]
-        #maxB = np.delete(maxB, idx_k)
-        #indmaxB = np.delete(indmaxb, idx_k)
-        #maxb = np.hstack((np.minimum(k, indmaxB).reshape(-1, 1), np.maximum(k,indmaxB).reshape(-1, 1), maxB.reshape(-1, 1)))
         
+    def predict(self, Xl_Test, Xu_Test, patClassIdTest):
+        """
+        Perform classification
+        
+            result = predict(Xl_Test, Xu_Test, patClassIdTest)
+        
+        INPUT:
+            Xl_Test             Test data lower bounds (rows = objects, columns = features)
+            Xu_Test             Test data upper bounds (rows = objects, columns = features)
+            patClassIdTest	     Test data class labels (crisp)
+            
+        OUTPUT:
+            result        A object with Bunch datatype containing all results as follows:
+                          + summis           Number of misclassified objects
+                          + misclass         Binary error map
+                          + sumamb           Number of objects with maximum membership in more than one class
+                          + out              Soft class memberships
+                          + mem              Hyperbox memberships
+        """
+        # Normalize testing dataset if training datasets were normalized
+        if len(self.mins) > 0:
+            noSamples = Xl_Test.shape[0]
+            Xl_Test = self.loLim + (self.hiLim - self.loLim) * (Xl_Test - np.ones((noSamples, 1)) * self.mins) / (np.ones((noSamples, 1)) * (self.maxs - self.mins))
+            Xu_Test = self.loLim + (self.hiLim - self.loLim) * (Xu_Test - np.ones((noSamples, 1)) * self.mins) / (np.ones((noSamples, 1)) * (self.maxs - self.mins))
+            
+            if Xl_Test.min() < self.loLim or Xu_Test.min() < self.loLim or Xl_Test.max() > self.hiLim or Xu_Test.max() > self.hiLim:
+                print('Test sample falls ousitde', self.loLim, '-', self.hiLim, 'interval')
+                return
+            
+        # do classification
+        result = predict(self.V, self.W, self.classId, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)
+        
+        return result
+    
+if __name__ == '__main__':
+    training_file = 'synthetic_train.dat'
+    testing_file = 'synthetic_test.dat'
+
+    # Read training file
+    Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset(training_file, 1, False)
+    # Read testing file
+    X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
+    
+    classifier = AccelBatchGFMM(1, 0.6, 0.5, 'mid', 'min', False, 'min', False, [0, 1])
+    classifier.fit(Xtr, Xtr, patClassIdTr)
+    
+    # Testing
+    print("-- Testing --")
+    result = classifier.predict(Xtest, Xtest, patClassIdTest)
+    if result != None:
+        print("Number of wrong predicted samples = ", result.summis)
+        numTestSample = Xtest.shape[0]
+        print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")

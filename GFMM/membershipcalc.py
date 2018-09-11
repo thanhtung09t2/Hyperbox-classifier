@@ -76,3 +76,44 @@ def fofmemb(x, gama):
     
     return f
 
+def asym_similarity_one_many(Xl_k, Xu_k, V, W, g = 1, asym_oper = 'max', oper_mem = 'min'):
+    """
+    Calculate the asymetrical similarity value of the k-th hyperbox (lower bound - Xl_k, upper bound - Xu_k) and 
+    hyperboxes having lower and upper bounds stored in two matrix V and W respectively
+    
+    INPUT
+        Xl_k        Lower bound of the k-th hyperbox
+        Xu_k        Upper bound of the k-th hyperbox
+        V           Lower bounds of other hyperboxes
+        W           Upper bounds of other hyperboxes
+        g           User defined sensitivity parameter 
+        asym_oper   Use 'min' or 'max' (default) to compute the asymetrical similarity value
+        oper_mem    operator used to compute the membership value, 'min' or 'prod'
+        
+    OUTPUT
+        b           similarity values of hyperbox k with all hyperboxes having lower and upper bounds in V and W
+    
+    """
+    numHyperboxes = W.shape[0]
+    b = np.empty(numHyperboxes, dtype = object)
+    
+    for k in range(numHyperboxes):
+        violMax1 = 1 - fofmemb(np.ones((1, 1)) * (Xu_k - W[k]), g)
+        violMin1 = 1 - fofmemb((V[k] - Xl_k) * np.ones((1,1)), g)
+        
+        violMax2 = 1 - fofmemb(np.ones((1, 1)) * (W[k] - Xu_k), g)
+        violMin2 = 1 - fofmemb((Xl_k - V[k]) * np.ones((1,1)), g)
+        
+        if oper_mem == 'prod':
+            b1 = np.prod(np.minimum(violMax1, violMin1), axis = 1)[0]
+            b2 = np.prod(np.minimum(violMax2, violMin2), axis = 1)[0]
+        else:
+            b1 = np.minimum(violMax1, violMin1).min(axis = 1)[0]
+            b2 = np.minimum(violMax2, violMin2).min(axis = 1)[0]
+            
+        if asym_oper == 'max':
+            b[k] = np.maximum(b1, b2)
+        else:
+            b[k] = np.minimum(b1, b2)
+    
+    return b

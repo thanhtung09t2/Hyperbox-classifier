@@ -39,7 +39,7 @@ def hyperboxOverlapTest(V, W, ind, testInd):
     c4 = ~condWiWk & condViVk
     c = c1 + c2 + c3 + c4
 
-    ad = c.all();
+    ad = c.all()
 
     if ad == True:
         minimum = 1;
@@ -108,3 +108,49 @@ def hyperboxContraction(V1, W1, newCD, testedInd, ind):
         V[testedInd, newCD[1]] = W[ind, newCD[1]]
     
     return (V, W)
+
+
+def isOverlap(V, W, ind, classId):
+    """
+    Checking overlap between hyperbox ind and remaning hyperboxes (1 vs many)
+    
+    INPUT
+        V           Hyperbox lower bounds
+        W           Hyperbox upper bounds
+        ind         Index of the hyperbox to be checked for overlap
+        classId     Class labels of hyperboxes
+        
+    OUTPUT
+        False - no overlap,  True - overlap
+    """
+    
+    if (V[ind] > W[ind]).any() == True:
+        return False
+    else:
+        indcomp = np.nonzero((W >= V).all(axis = 1)) 	# examine only hyperboxes w/o missing dimensions, meaning that in each dimension upper bound is larger than lowerbound
+        
+        if len(indcomp) == 0:
+            return False
+        else:
+            newInd = np.delete(indcomp, np.where(indcomp == ind)[0]) # remove index of the tested hyperbox
+            if len(newInd) > 0:
+                onesTemp = np.ones((len(newInd), 1))
+                condWiWk = onesTemp * W[ind] - W[newInd] > 0
+                condViVk = onesTemp * V[ind] - V[newInd] > 0
+                condWkVi = W[newInd] - onesTemp * V[ind] > 0
+                condWiVk = onesTemp * W[ind] - V[newInd] > 0
+                
+                c1 = ~condWiWk & ~condViVk & condWiVk
+                c2 = condWiWk & condViVk & condWkVi
+                c3 = condWiWk & ~condViVk
+                c4 = ~condWiWk & condViVk
+                
+                c = c1 + c2 + c3 + c4
+                ad = c.all(axis = 1)
+                ind2 = newInd[ad]
+                
+                ovresult = (classId[ind2] != classId[ind]).any()
+                
+                return ovresult
+            else:
+                return False
