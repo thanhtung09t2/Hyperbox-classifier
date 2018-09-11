@@ -135,6 +135,21 @@ class AccelBatchGFMM(object):
             
             k = 0 # input pattern index
             while k < len(self.classId):
+                if self.simil == 'short':
+                    b = memberG(self.W[k], self.V[k], self.V, self.W, self.gamma, self.oper)
+                elif self.simil == 'long':
+                    b = memberG(self.V[k], self.W[k], self.W, self.V, self.gamma, self.oper)
+                else:
+                    b = asym_similarity_one_many(self.V[k], self.W[k], self.V, self.W, self.g, self.sing, self.oper)
+                
+            
+        # remove self-membership
+        # idx_k = np.where(indmaxB == k)[0]
+        #maxB = np.delete(maxB, idx_k)
+        #indmaxB = np.delete(indmaxb, idx_k)
+        #maxb = np.hstack((np.minimum(k, indmaxB).reshape(-1, 1), np.maximum(k,indmaxB).reshape(-1, 1), maxB.reshape(-1, 1)))
+            
+      
                 
             
         # remove self-membership
