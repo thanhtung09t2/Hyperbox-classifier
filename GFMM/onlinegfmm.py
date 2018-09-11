@@ -35,11 +35,10 @@ from classification import predict
 from drawinghelper import drawbox
 from prepocessinghelper import loadDataset
 from prepocessinghelper import normalize
-from maxtrixhelper import delete_const_dims
 
 class OnlineGFMM(object):
     
-    def __init__(self, gamma = 1, teta = 1, tMin = 1, isDraw = False, oper = 'min', isNorm = True, norm_range = [0, 1], V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int16)):
+    def __init__(self, gamma = 1, teta = 1, tMin = 1, isDraw = False, oper = 'min', isNorm = False, norm_range = [0, 1], V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int16)):
         self.gamma = gamma
         self.teta = teta
         self.tMin = tMin
@@ -69,9 +68,6 @@ class OnlineGFMM(object):
         
         mark = np.array(['*', 'o', 'x', '+', '.', ',', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', 'h', 'H', 'X', 'D', '|', '_'])
         mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
-        
-        # delete constant dimensions
-        X_l, X_u = delete_const_dims(X_l, X_u)
         
         # Normalize input samples if needed
         if X_l.min() < self.loLim or X_u.min() < self.loLim or X_u.max() > self.hiLim or X_l.max() > self.hiLim:

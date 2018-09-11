@@ -148,16 +148,4 @@ class AccelBatchGFMM(object):
         #maxB = np.delete(maxB, idx_k)
         #indmaxB = np.delete(indmaxb, idx_k)
         #maxb = np.hstack((np.minimum(k, indmaxB).reshape(-1, 1), np.maximum(k,indmaxB).reshape(-1, 1), maxB.reshape(-1, 1)))
-            
-      
-                
-            
-        # remove self-membership
-        # idx_k = np.where(indmaxB == k)[0]
-        #maxB = np.delete(maxB, idx_k)
-        #indmaxB = np.delete(indmaxb, idx_k)
-        #maxb = np.hstack((np.minimum(k, indmaxB).reshape(-1, 1), np.maximum(k,indmaxB).reshape(-1, 1), maxB.reshape(-1, 1)))
-            
-      
-    
-    
+        
