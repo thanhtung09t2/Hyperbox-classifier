@@ -20,7 +20,9 @@ INPUT parameters from command line:
     arg8:  Operation used to compute membership value: 'min' or 'prod' (default: 'min')
     arg9:  Do normalization of datasets or not? True: Normilize, False: No normalize (default: True)
     arg10: range of input values after normalization (default: [0, 1])
-    
+
+Note: parameters with string datatype should put between quotation marks (" ") </br>
+
 Example:
 
     python onlinegfmm.py 1 synthetic_train.dat synthetic_test.dat True 0.6 0.5 1 min True "[0, 1]"
