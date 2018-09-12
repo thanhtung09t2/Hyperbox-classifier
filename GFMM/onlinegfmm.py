@@ -33,7 +33,7 @@ from membershipcalc import memberG
 from hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
 from classification import predict
 from drawinghelper import drawbox
-from prepocessinghelper import loadDataset
+from prepocessinghelper import loadDataset, string_to_boolean
 from prepocessinghelper import normalize
 
 class OnlineGFMM(object):
@@ -279,14 +279,6 @@ class OnlineGFMM(object):
         result = predict(self.V, self.W, self.classId, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)
         
         return result
- 
-def string_to_boolean(st):
-    if st == "True" or st == "true":
-        return True
-    elif st == "False" or st == "false":
-        return False
-    else:
-        raise ValueError
         
 if __name__ == '__main__':
     """

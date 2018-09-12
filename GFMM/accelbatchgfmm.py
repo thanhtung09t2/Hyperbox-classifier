@@ -27,15 +27,17 @@ Created on Mon Sep 10 09:42:14 2018
         clusters        Identifiers of input objects in each hyperbox (indexes of training samples covered by corresponding hyperboxes)
 
 """
+import sys
+import ast
 import numpy as np
 import matplotlib
-#matplotlib.use('TkAgg')
+matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from matrixhelper import delete_const_dims, pca_transform
-from prepocessinghelper import normalize, loadDataset
+from prepocessinghelper import normalize, loadDataset, string_to_boolean
 from membershipcalc import asym_similarity_one_many, memberG
 from drawinghelper import drawbox
 from hyperboxadjustment import isOverlap
@@ -141,7 +143,7 @@ class AccelBatchGFMM(object):
             k = 0 # input pattern index
             while k < len(self.classId):
                 if self.simil == 'short':
-                    b = memberG(np.maximum(self.W[k], self.V[k]), np.minimum(self.V[k], self.W[k]), np.minimum(self.V, self.W), np.maximum(self.W, self.V), self.gamma, self.oper)
+                    b = memberG(self.W[k], self.V[k], self.V, self.W, self.gamma, self.oper)
                 elif self.simil == 'long':
                     b = memberG(self.V[k], self.W[k], self.W, self.V, self.gamma, self.oper)
                 else:
@@ -154,39 +156,50 @@ class AccelBatchGFMM(object):
                 if len(maxB) > 0:
                     indmaxB = indB[sortB >= self.bthres]
                     # remove self-membership
-                    idx_k = np.where(indmaxB == k)[0]
-                    maxB = np.delete(maxB, idx_k)
-                    indmaxB = np.delete(indmaxB, idx_k)
+                    idx_k = np.where(indmaxB != k)[0]
+                    #maxB = np.delete(maxB, idx_k)                  
+                    #indmaxB = np.delete(indmaxB, idx_k)
+                    maxB = maxB[idx_k]
+                    indmaxB = indmaxB[idx_k]
                     
                     # remove memberships to boxes from other classes
-                    idx_other_classes = np.where(np.logical_and(self.classId[indmaxB] != self.classId[k], self.classId[indmaxB] != 0))
-                    maxB = np.delete(maxB, idx_other_classes)
+                    # idx_other_classes = np.where(np.logical_and(self.classId[indmaxB] != self.classId[k], self.classId[indmaxB] != 0))
+                    idx_same_classes = np.where(np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0))
+                    #maxB = np.delete(maxB, idx_other_classes)
+                    maxB = maxB[idx_same_classes]
                     # leaving memeberships to unlabelled boxes
-                    indmaxB = np.delete(indmaxB, idx_other_classes)
+                    #indmaxB = np.delete(indmaxB, idx_other_classes)
+                    indmaxB = indmaxB[idx_same_classes]
+                    
+#                    if len(maxB) > 30: # trim the set of memberships to speedup processing
+#                        maxB = maxB[0:30]
+#                        indmaxB = indmaxB[0:30]
                 
-                    pairewise_maxb = np.hstack((np.minimum(k, indmaxB).reshape(-1, 1), np.maximum(k,indmaxB).reshape(-1, 1), maxB.reshape(-1, 1)))
+                    pairewise_maxb = np.hstack((np.minimum(k, indmaxB)[:, np.newaxis], np.maximum(k,indmaxB)[:, np.newaxis], maxB[:, np.newaxis]))
 
                     for i in range(pairewise_maxb.shape[0]):
                         # calculate new coordinates of k-th hyperbox by including pairewise_maxb(i,1)-th box, scrap the latter and leave the rest intact
                         # agglomorate pairewise_maxb(i, 0) and pairewise_maxb(i, 1) by adjusting pairewise_maxb(i, 0)
                         # remove pairewise_maxb(i, 1) by getting newV from 1 -> pairewise_maxb(i, 0) - 1, new coordinates for pairewise_maxb(i, 0), from pairewise_maxb(i, 0) + 1 -> pairewise_maxb(i, 1) - 1, pairewise_maxb(i, 1) + 1 -> end
                         
-                        newV = np.vstack((self.V[0:pairewise_maxb[i, 0].astype(np.int64)], np.minimum(self.V[pairewise_maxb[i, 0].astype(np.int64)], self.V[pairewise_maxb[i, 1].astype(np.int64)]), self.V[pairewise_maxb[i, 0].astype(np.int64) + 1:pairewise_maxb[i, 1].astype(np.int64)], self.V[pairewise_maxb[i, 1].astype(np.int64) + 1:]))
-                        newW = np.vstack((self.W[0:pairewise_maxb[i, 0].astype(np.int64)], np.maximum(self.W[pairewise_maxb[i, 0].astype(np.int64)], self.W[pairewise_maxb[i, 1].astype(np.int64)]), self.W[pairewise_maxb[i, 0].astype(np.int64) + 1:pairewise_maxb[i, 1].astype(np.int64)], self.W[pairewise_maxb[i, 1].astype(np.int64) + 1:]))
-                        newClassId = np.hstack((self.classId[0:pairewise_maxb[i, 1].astype(np.int64)], self.classId[pairewise_maxb[i, 1].astype(np.int64) + 1:]))
+                        newV = np.vstack((self.V[0:int(pairewise_maxb[i, 0])], np.minimum(self.V[int(pairewise_maxb[i, 0])], self.V[int(pairewise_maxb[i, 1])]), self.V[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.V[int(pairewise_maxb[i, 1]) + 1:]))
+                        newW = np.vstack((self.W[0:int(pairewise_maxb[i, 0])], np.maximum(self.W[int(pairewise_maxb[i, 0])], self.W[int(pairewise_maxb[i, 1])]), self.W[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.W[int(pairewise_maxb[i, 1]) + 1:]))
+                        newClassId = np.hstack((self.classId[0:int(pairewise_maxb[i, 1])], self.classId[int(pairewise_maxb[i, 1]) + 1:]))
                         
                         # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
                         # position of adjustment is pairewise_maxb[i, 0] in new bounds
-                        if not isOverlap(newV, newW, pairewise_maxb[i, 0].astype(np.int64), newClassId) and ((newW[pairewise_maxb[i, 0].astype(np.int64), :] - newV[pairewise_maxb[i, 0].astype(np.int64),:]) <= self.teta).all() == True:
+                        if not isOverlap(newV, newW, int(pairewise_maxb[i, 0]), newClassId) and ((newW[int(pairewise_maxb[i, 0]), :] - newV[int(pairewise_maxb[i, 0]),:]) <= self.teta).all() == True:
                             self.V = newV
                             self.W = newW
                             self.classId = newClassId
                             
-                            self.cardin[pairewise_maxb[i, 0].astype(np.int64)] = self.cardin[pairewise_maxb[i, 0].astype(np.int64)] + self.cardin[pairewise_maxb[i, 1].astype(np.int64)]
-                            self.cardin = np.delete(self.cardin, pairewise_maxb[i, 1].astype(np.int64))
+                            self.cardin[int(pairewise_maxb[i, 0])] = self.cardin[int(pairewise_maxb[i, 0])] + self.cardin[int(pairewise_maxb[i, 1])]
+                            #self.cardin = np.delete(self.cardin, int(pairewise_maxb[i, 1]))
+                            self.cardin = np.append(self.cardin[0:int(pairewise_maxb[i, 1])], self.cardin[int(pairewise_maxb[i, 1]) + 1:])
                             
-                            self.clusters[pairewise_maxb[i, 0].astype(np.int64)] = np.append(self.clusters[pairewise_maxb[i, 0].astype(np.int64)], self.clusters[pairewise_maxb[i, 1].astype(np.int64)])
-                            self.clusters = np.delete(self.clusters, pairewise_maxb[i, 1].astype(np.int64))
+                            self.clusters[int(pairewise_maxb[i, 0])] = np.append(self.clusters[int(pairewise_maxb[i, 0])], self.clusters[int(pairewise_maxb[i, 1])])
+                            #self.clusters = np.delete(self.clusters, int(pairewise_maxb[i, 1]))
+                            self.clusters = np.append(self.clusters[0:int(pairewise_maxb[i, 1])], self.clusters[int(pairewise_maxb[i, 1]) + 1:])
                             
                             isTraining = True
                             
@@ -195,21 +208,21 @@ class AccelBatchGFMM(object):
                                 
                             if self.isDraw:
                                 try:
-                                    hyperboxes[pairewise_maxb[i, 1].astype(np.int64)].remove()
-                                    hyperboxes[pairewise_maxb[i, 0].astype(np.int64)].remove()
+                                    hyperboxes[int(pairewise_maxb[i, 1])].remove()
+                                    hyperboxes[int(pairewise_maxb[i, 0])].remove()
                                 except:
                                     pass
                                 
                                 Vt, Wt = self.pcatransform()
                                 
                                 box_color = 'k'
-                                if self.classId[pairewise_maxb[i, 0].astype(np.int64)] < len(mark_col):
-                                    box_color = mark_col[self.classId[pairewise_maxb[i, 0].astype(np.int64)]]
+                                if self.classId[int(pairewise_maxb[i, 0])] < len(mark_col):
+                                    box_color = mark_col[self.classId[int(pairewise_maxb[i, 0])]]
                                 
-                                box = drawbox(np.asmatrix(Vt[pairewise_maxb[i, 0].astype(np.int64)]), np.asmatrix(Wt[pairewise_maxb[i, 0].astype(np.int64)]), drawing_canvas, box_color)
+                                box = drawbox(np.asmatrix(Vt[int(pairewise_maxb[i, 0])]), np.asmatrix(Wt[int(pairewise_maxb[i, 0])]), drawing_canvas, box_color)
                                 plt.pause(self.delayConstant)
                                 hyperboxes[pairewise_maxb[i, 0].astype(np.int64)] = box[0]
-                                hyperboxes.remove(hyperboxes[pairewise_maxb[i, 1].astype(np.int64)])
+                                hyperboxes.remove(hyperboxes[int(pairewise_maxb[i, 1])])
                                 
                             break # if hyperbox adjusted there's no need to look at other hyperboxes
                             
@@ -252,15 +265,85 @@ class AccelBatchGFMM(object):
         return result
     
 if __name__ == '__main__':
-    training_file = 'synthetic_train.dat'
-    testing_file = 'synthetic_test.dat'
-
-    # Read training file
-    Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset(training_file, 1, False)
-    # Read testing file
-    X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
+    """
+    INPUT parameters from command line
+    arg1: + 1 - training and testing datasets are located in separated files
+          + 2 - training and testing datasets are located in the same files
+    arg2: path to file containing the training dataset (arg1 = 1) or both training and testing datasets (arg1 = 2)
+    arg3: + path to file containing the testing dataset (arg1 = 1)
+          + percentage of the training dataset in the input file
+    arg4: + True: drawing hyperboxes during the training process
+          + False: no drawing
+    arg5: + Maximum size of hyperboxes (teta, default: 1)
+    arg6: + gamma value (default: 1)
+    arg7: + Similarity threshod (default: 0.5)
+    arg8: + Similarity measure: 'short', 'long' or 'mid' (default: 'mid')
+    arg9: + operation used to compute membership value: 'min' or 'prod' (default: 'min')
+    arg10: + do normalization of datasets or not? True: Normilize, False: No normalize (default: True)
+    arg11: + range of input values after normalization (default: [0, 1])   
+    arg12: + Use 'min' or 'max' (default) memberhsip in case of assymetric similarity measure (simil='mid')
+    """
+    # Init default parameters
+    if len(sys.argv) < 5:
+        isDraw = False
+    else:
+        isDraw = string_to_boolean(sys.argv[4])
     
-    classifier = AccelBatchGFMM(1, 0.6, 0.5, 'short', 'min', True, 'min', False, [0, 1])
+    if len(sys.argv) < 6:
+        teta = 1    
+    else:
+        teta = float(sys.argv[5])
+    
+    if len(sys.argv) < 7:
+        gamma = 1
+    else:
+        gamma = float(sys.argv[6])
+    
+    if len(sys.argv) < 8:
+        bthres = 0.5
+    else:
+        bthres = float(sys.argv[7])
+    
+    if len(sys.argv) < 9:
+        simil = 'mid'
+    else:
+        simil = sys.argv[8]
+    
+    if len(sys.argv) < 10:
+        oper = 'min'
+    else:
+        oper = sys.argv[9]
+    
+    if len(sys.argv) < 11:
+        isNorm = True
+    else:
+        isNorm = string_to_boolean(sys.argv[10])
+    
+    if len(sys.argv) < 12:
+        norm_range = [0, 1]
+    else:
+        norm_range = ast.literal_eval(sys.argv[11])
+        
+    if len(sys.argv) < 13:
+        sing = 'max'
+    else:
+        sing = sys.argv[12]
+        
+    if sys.argv[1] == '1':
+        training_file = sys.argv[2]
+        testing_file = sys.argv[3]
+
+        # Read training file
+        Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset(training_file, 1, False)
+        # Read testing file
+        X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
+    
+    else:
+        dataset_file = sys.argv[2]
+        percent_Training = float(sys.argv[3])
+        Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(dataset_file, percent_Training, False)
+    
+    classifier = AccelBatchGFMM(gamma, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range)
     classifier.fit(Xtr, Xtr, patClassIdTr)
     
     # Testing

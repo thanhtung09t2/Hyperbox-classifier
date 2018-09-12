@@ -106,3 +106,11 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
         patClassIdTest = np.append(patClassIdTest, patClassId_tmp)
         
     return (Xtr, Xtest, patClassIdTr, patClassIdTest)
+
+def string_to_boolean(st):
+    if st == "True" or st == "true":
+        return True
+    elif st == "False" or st == "false":
+        return False
+    else:
+        raise ValueError

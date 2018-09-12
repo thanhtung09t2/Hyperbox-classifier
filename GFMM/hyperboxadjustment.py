@@ -127,12 +127,16 @@ def isOverlap(V, W, ind, classId):
     if (V[ind] > W[ind]).any() == True:
         return False
     else:
-        indcomp = np.nonzero((W >= V).all(axis = 1)) 	# examine only hyperboxes w/o missing dimensions, meaning that in each dimension upper bound is larger than lowerbound
+        indcomp = np.nonzero((W >= V).all(axis = 1))[0] 	# examine only hyperboxes w/o missing dimensions, meaning that in each dimension upper bound is larger than lowerbound
         
         if len(indcomp) == 0:
             return False
         else:
-            newInd = np.delete(indcomp, np.where(indcomp == ind)[0]) # remove index of the tested hyperbox
+            testedHyperIndex = np.where(indcomp == ind)[0][0]
+            # remove index of the tested hyperbox
+            #newInd = np.delete(indcomp, np.where(indcomp == ind)[0])
+            newInd = np.append(indcomp[0:testedHyperIndex], indcomp[testedHyperIndex:])
+            
             if len(newInd) > 0:
                 onesTemp = np.ones((len(newInd), 1))
                 condWiWk = onesTemp * W[ind] - W[newInd] > 0
