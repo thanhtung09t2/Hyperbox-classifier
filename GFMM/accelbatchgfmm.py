@@ -199,7 +199,7 @@ class AccelBatchGFMM(object):
                             
                             isTraining = True
                             
-                            if k != pairewise_maxb[i, 1]:
+                            if k != pairewise_maxb[i, 0]:
                                 k = k - 1
                                 
                             if self.isDraw:
@@ -269,7 +269,7 @@ if __name__ == '__main__':
     # Read testing file
     X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
     
-    classifier = AccelBatchGFMM(1, 0.6, 0.5, 'mid', 'max', True, 'min', False, [0, 1])
+    classifier = AccelBatchGFMM(1, 0.6, 0.5, 'short', 'max', True, 'min', False, [0, 1])
     classifier.fit(Xtr, Xtr, patClassIdTr)
     
     # Testing
