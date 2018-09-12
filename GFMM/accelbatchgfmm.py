@@ -159,14 +159,10 @@ class AccelBatchGFMM(object):
                     indmaxB = np.delete(indmaxB, idx_k)
                     
                     # remove memberships to boxes from other classes
-                    #print('k = ', k)
-                    
-                    #print('Class ID size = ', self.classId.size)
-                    #print('Size = ', indmaxB.size, ': ', indmaxB)
                     idx_other_classes = np.where(np.logical_and(self.classId[indmaxB] != self.classId[k], self.classId[indmaxB] != 0))
-                    np.delete(maxB, idx_other_classes)
+                    maxB = np.delete(maxB, idx_other_classes)
                     # leaving memeberships to unlabelled boxes
-                    np.delete(indmaxB, idx_other_classes)
+                    indmaxB = np.delete(indmaxB, idx_other_classes)
                 
                     pairewise_maxb = np.hstack((np.minimum(k, indmaxB).reshape(-1, 1), np.maximum(k,indmaxB).reshape(-1, 1), maxB.reshape(-1, 1)))
 
@@ -174,16 +170,11 @@ class AccelBatchGFMM(object):
                         # calculate new coordinates of k-th hyperbox by including pairewise_maxb(i,1)-th box, scrap the latter and leave the rest intact
                         # agglomorate pairewise_maxb(i, 0) and pairewise_maxb(i, 1) by adjusting pairewise_maxb(i, 0)
                         # remove pairewise_maxb(i, 1) by getting newV from 1 -> pairewise_maxb(i, 0) - 1, new coordinates for pairewise_maxb(i, 0), from pairewise_maxb(i, 0) + 1 -> pairewise_maxb(i, 1) - 1, pairewise_maxb(i, 1) + 1 -> end
-#                        newV = None
-#                        newW = None
-#                        newClassId = None
-#                        try:
-                        newV = np.vstack((self.V[0:pairewise_maxb[i, 0].astype(np.int64), :], np.minimum(self.V[pairewise_maxb[i, 0].astype(np.int64), :], self.V[pairewise_maxb[i, 1].astype(np.int64), :]), self.V[pairewise_maxb[i, 0].astype(np.int64) + 1:pairewise_maxb[i, 1].astype(np.int64), :], self.V[pairewise_maxb[i, 1].astype(np.int64) + 1:, :]))
-                        newW = np.vstack((self.W[0:pairewise_maxb[i, 0].astype(np.int64), :], np.maximum(self.W[pairewise_maxb[i, 0].astype(np.int64), :], self.W[pairewise_maxb[i, 1].astype(np.int64), :]), self.W[pairewise_maxb[i, 0].astype(np.int64) + 1:pairewise_maxb[i, 1].astype(np.int64), :], self.W[pairewise_maxb[i, 1].astype(np.int64) + 1:, :]))
+                        
+                        newV = np.vstack((self.V[0:pairewise_maxb[i, 0].astype(np.int64)], np.minimum(self.V[pairewise_maxb[i, 0].astype(np.int64)], self.V[pairewise_maxb[i, 1].astype(np.int64)]), self.V[pairewise_maxb[i, 0].astype(np.int64) + 1:pairewise_maxb[i, 1].astype(np.int64)], self.V[pairewise_maxb[i, 1].astype(np.int64) + 1:]))
+                        newW = np.vstack((self.W[0:pairewise_maxb[i, 0].astype(np.int64)], np.maximum(self.W[pairewise_maxb[i, 0].astype(np.int64)], self.W[pairewise_maxb[i, 1].astype(np.int64)]), self.W[pairewise_maxb[i, 0].astype(np.int64) + 1:pairewise_maxb[i, 1].astype(np.int64)], self.W[pairewise_maxb[i, 1].astype(np.int64) + 1:]))
                         newClassId = np.hstack((self.classId[0:pairewise_maxb[i, 1].astype(np.int64)], self.classId[pairewise_maxb[i, 1].astype(np.int64) + 1:]))
-#                        except:
-#                            print(type(pairewise_maxb[i, 0]))
-#                            return
+                        
                         # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
                         # position of adjustment is pairewise_maxb[i, 0] in new bounds
                         if not isOverlap(newV, newW, pairewise_maxb[i, 0].astype(np.int64), newClassId) and ((newW[pairewise_maxb[i, 0].astype(np.int64), :] - newV[pairewise_maxb[i, 0].astype(np.int64),:]) <= self.teta).all() == True:
@@ -192,10 +183,10 @@ class AccelBatchGFMM(object):
                             self.classId = newClassId
                             
                             self.cardin[pairewise_maxb[i, 0].astype(np.int64)] = self.cardin[pairewise_maxb[i, 0].astype(np.int64)] + self.cardin[pairewise_maxb[i, 1].astype(np.int64)]
-                            np.delete(self.cardin, pairewise_maxb[i, 1].astype(np.int64))
+                            self.cardin = np.delete(self.cardin, pairewise_maxb[i, 1].astype(np.int64))
                             
                             self.clusters[pairewise_maxb[i, 0].astype(np.int64)] = np.append(self.clusters[pairewise_maxb[i, 0].astype(np.int64)], self.clusters[pairewise_maxb[i, 1].astype(np.int64)])
-                            np.delete(self.clusters, pairewise_maxb[i, 1].astype(np.int64))
+                            self.clusters = np.delete(self.clusters, pairewise_maxb[i, 1].astype(np.int64))
                             
                             isTraining = True
                             
@@ -269,7 +260,7 @@ if __name__ == '__main__':
     # Read testing file
     X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
     
-    classifier = AccelBatchGFMM(1, 0.6, 0.5, 'short', 'max', True, 'min', False, [0, 1])
+    classifier = AccelBatchGFMM(1, 0.6, 0.5, 'short', 'min', False, 'min', False, [0, 1])
     classifier.fit(Xtr, Xtr, patClassIdTr)
     
     # Testing
