@@ -95,7 +95,7 @@ def asym_similarity_one_many(Xl_k, Xu_k, V, W, g = 1, asym_oper = 'max', oper_me
     
     """
     numHyperboxes = W.shape[0]
-    b = np.empty(numHyperboxes, dtype = object)
+    b = np.empty(numHyperboxes, dtype = float)
     
     for k in range(numHyperboxes):
         violMax1 = 1 - fofmemb(np.ones((1, 1)) * (Xu_k - W[k]), g)

@@ -39,10 +39,16 @@ def drawbox(low, up, plt, color = ['k']):
             
         if low[i].size == 2:
             # plot actually returns a list of artists, hence the ,
-            han[i], = plt.plot([low[i, 0], low[i, 0], up[i, 0], up[i, 0], low[i, 0]], [low[i, 1], up[i, 1], up[i, 1], low[i, 1], low[i, 1]], color=selected_color)
+            if low[i, 0] == up[i, 0] and low[i, 1] == up[i, 1]:
+                han[i], = plt.plot(low[i, 0], low[i, 1], color=selected_color, marker='+')
+            else:
+                han[i], = plt.plot([low[i, 0], low[i, 0], up[i, 0], up[i, 0], low[i, 0]], [low[i, 1], up[i, 1], up[i, 1], low[i, 1], low[i, 1]], color=selected_color)
         else:
-            han[i], = plt.plot([low[i, 0], low[i, 0], up[i, 0], up[i, 0], low[i, 0], low[i, 0], low[i, 0], low[i, 0], up[i, 0], up[i, 0], low[i, 0], up[i, 0], up[i, 0], up[i, 0], up[i, 0], low[i, 0], low[i, 0]], \
-               [low[i, 1], up[i, 1], up[i, 1], low[i, 1], low[i, 1], low[i, 1], low[i, 1], up[i, 1], up[i, 1], low[i, 1], low[i, 1], low[i, 1], low[i, 1], up[i, 1], up[i, 1], up[i, 1], up[i, 1]], \
-               [low[i, 2], low[i, 2], low[i, 2], low[i, 2], low[i, 2], up[i, 2], up[i, 2], up[i, 2], up[i, 2], up[i, 2], up[i, 2], up[i, 2], low[i, 2], low[i, 2], up[i, 2], up[i, 2], low[i, 2]], color=selected_color)
+            if low[i, 0] == up[i, 0] and low[i, 1] == up[i, 1] and low[i, 2] == up[i, 2]:
+                han[i], = plt.plot(low[i, 0], low[i, 1], low[i, 2], color=selected_color, marker='+')
+            else:
+                han[i], = plt.plot([low[i, 0], low[i, 0], up[i, 0], up[i, 0], low[i, 0], low[i, 0], low[i, 0], low[i, 0], up[i, 0], up[i, 0], low[i, 0], up[i, 0], up[i, 0], up[i, 0], up[i, 0], low[i, 0], low[i, 0]], \
+                                   [low[i, 1], up[i, 1], up[i, 1], low[i, 1], low[i, 1], low[i, 1], low[i, 1], up[i, 1], up[i, 1], low[i, 1], low[i, 1], low[i, 1], low[i, 1], up[i, 1], up[i, 1], up[i, 1], up[i, 1]], \
+                                   [low[i, 2], low[i, 2], low[i, 2], low[i, 2], low[i, 2], up[i, 2], up[i, 2], up[i, 2], up[i, 2], up[i, 2], up[i, 2], up[i, 2], low[i, 2], low[i, 2], up[i, 2], up[i, 2], low[i, 2]], color=selected_color)
             
     return han
