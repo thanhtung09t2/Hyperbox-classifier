@@ -113,7 +113,7 @@ class AccelBatchGFMM(object):
         
         if self.isDraw:
             mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
-            fig = plt.figure(0)
+            fig = plt.figure("GFMM - AGGLO-2")
             plt.ion()
             if xX == 2:
                 drawing_canvas = fig.add_subplot(1, 1, 1)
@@ -141,7 +141,7 @@ class AccelBatchGFMM(object):
             k = 0 # input pattern index
             while k < len(self.classId):
                 if self.simil == 'short':
-                    b = memberG(self.W[k], self.V[k], self.V, self.W, self.gamma, self.oper)
+                    b = memberG(np.maximum(self.W[k], self.V[k]), np.minimum(self.V[k], self.W[k]), np.minimum(self.V, self.W), np.maximum(self.W, self.V), self.gamma, self.oper)
                 elif self.simil == 'long':
                     b = memberG(self.V[k], self.W[k], self.W, self.V, self.gamma, self.oper)
                 else:
@@ -260,7 +260,7 @@ if __name__ == '__main__':
     # Read testing file
     X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
     
-    classifier = AccelBatchGFMM(1, 0.6, 0.5, 'short', 'min', False, 'min', False, [0, 1])
+    classifier = AccelBatchGFMM(1, 0.6, 0.5, 'short', 'min', True, 'min', False, [0, 1])
     classifier.fit(Xtr, Xtr, patClassIdTr)
     
     # Testing

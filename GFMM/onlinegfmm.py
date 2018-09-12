@@ -84,7 +84,7 @@ class OnlineGFMM(object):
         listInputSamplePoints = list();
         
         if self.isDraw:
-            fig = plt.figure(0)
+            fig = plt.figure("GFMM - Online learning")
             plt.ion()
             if xX == 2:
                 drawing_canvas = fig.add_subplot(1, 1, 1)
