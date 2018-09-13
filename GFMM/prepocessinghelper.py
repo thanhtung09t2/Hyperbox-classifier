@@ -85,25 +85,38 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
     
     patClassIdTr = np.array([], dtype=np.int16)
     patClassIdTest = np.array([], dtype=np.int16)
-    noClasses = classLabels.size
     
-    for k in range(noClasses):
-        idx = np.nonzero(classId_dat == classLabels[k])[0]
-        # randomly shuffle indices of elements belonging to class classLabels[k]
-        if percentTr != 1 and percentTr != 0:
-            idx = idx[np.random.permutation(len(idx))] 
-
-        noTrain = int(len(idx) * percentTr + 0.5)
-
-        # Attach data of class k to corresponding datasets
-        Xtr_tmp = X_data[idx[0:noTrain], :]
-        Xtr = np.vstack((Xtr, Xtr_tmp))
-        patClassId_tmp = np.full(noTrain, classLabels[k], dtype=np.int16)
-        patClassIdTr = np.append(patClassIdTr, patClassId_tmp)
+    if percentTr != 1 and percentTr != 0:
+        noClasses = classLabels.size
         
-        patClassId_tmp = np.full(len(idx) - noTrain, classLabels[k], dtype=np.int16)
-        Xtest = np.vstack((Xtest, X_data[idx[noTrain:len(idx)], :]))
-        patClassIdTest = np.append(patClassIdTest, patClassId_tmp)
+        for k in range(noClasses):
+            idx = np.nonzero(classId_dat == classLabels[k])[0]
+            # randomly shuffle indices of elements belonging to class classLabels[k]
+            if percentTr != 1 and percentTr != 0:
+                idx = idx[np.random.permutation(len(idx))] 
+    
+            noTrain = int(len(idx) * percentTr + 0.5)
+    
+            # Attach data of class k to corresponding datasets
+            Xtr_tmp = X_data[idx[0:noTrain], :]
+            Xtr = np.vstack((Xtr, Xtr_tmp))
+            patClassId_tmp = np.full(noTrain, classLabels[k], dtype=np.int16)
+            patClassIdTr = np.append(patClassIdTr, patClassId_tmp)
+            
+            patClassId_tmp = np.full(len(idx) - noTrain, classLabels[k], dtype=np.int16)
+            Xtest = np.vstack((Xtest, X_data[idx[noTrain:len(idx)], :]))
+            patClassIdTest = np.append(patClassIdTest, patClassId_tmp)
+    else:
+        if percentTr == 1:
+            Xtr = X_data
+            patClassIdTr = np.array(classId_dat, dtype=np.int16)
+            Xtest = np.array([])
+            patClassIdTest = np.array([])
+        else:
+            Xtr = np.array([])
+            patClassIdTr = np.array([])
+            Xtest = X_data
+            patClassIdTest = np.array(classId_dat, dtype=np.int16)
         
     return (Xtr, Xtest, patClassIdTr, patClassIdTest)
 

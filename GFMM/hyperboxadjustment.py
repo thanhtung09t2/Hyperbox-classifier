@@ -133,16 +133,19 @@ def isOverlap(V, W, ind, classId):
             return False
         else:
             testedHyperIndex = np.where(indcomp == ind)[0][0]
+            #testedHyperIndex = ind
             # remove index of the tested hyperbox
             #newInd = np.delete(indcomp, np.where(indcomp == ind)[0])
-            newInd = np.append(indcomp[0:testedHyperIndex], indcomp[testedHyperIndex:])
-            
+            newInd = np.append(indcomp[0:testedHyperIndex], indcomp[testedHyperIndex + 1:])
+
             if len(newInd) > 0:
                 onesTemp = np.ones((len(newInd), 1))
-                condWiWk = onesTemp * W[ind] - W[newInd] > 0
-                condViVk = onesTemp * V[ind] - V[newInd] > 0
-                condWkVi = W[newInd] - onesTemp * V[ind] > 0
-                condWiVk = onesTemp * W[ind] - V[newInd] > 0
+                condWiWk = (onesTemp * W[ind] - W[newInd]) > 0
+                condViVk = (onesTemp * V[ind] - V[newInd]) > 0
+                condWkVi = (W[newInd] - onesTemp * V[ind]) > 0
+                condWiVk = (onesTemp * W[ind] - V[newInd]) > 0
+                
+                #print(condWiWk.shape)
                 
                 c1 = ~condWiWk & ~condViVk & condWiVk
                 c2 = condWiWk & condViVk & condWkVi
@@ -150,11 +153,13 @@ def isOverlap(V, W, ind, classId):
                 c4 = ~condWiWk & condViVk
                 
                 c = c1 + c2 + c3 + c4
+                
                 ad = c.all(axis = 1)
+                #print("Ad = ", np.nonzero(ad)[0].size)
                 ind2 = newInd[ad]
                 
                 ovresult = (classId[ind2] != classId[ind]).any()
-                
+                    
                 return ovresult
             else:
                 return False

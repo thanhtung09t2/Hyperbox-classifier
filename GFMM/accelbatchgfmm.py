@@ -151,24 +151,24 @@ class AccelBatchGFMM(object):
                 
                 indB = np.argsort(b)[::-1]
                 sortB = b[indB]
+                
                 maxB = sortB[sortB >= self.bthres]	# apply membership threshold
                 
                 if len(maxB) > 0:
                     indmaxB = indB[sortB >= self.bthres]
                     # remove self-membership
-                    idx_k = np.where(indmaxB != k)[0]
-                    #maxB = np.delete(maxB, idx_k)                  
-                    #indmaxB = np.delete(indmaxB, idx_k)
-                    maxB = maxB[idx_k]
-                    indmaxB = indmaxB[idx_k]
+                    maxB = maxB[indmaxB != k]
+                    indmaxB = indmaxB[indmaxB != k]
                     
                     # remove memberships to boxes from other classes
                     # idx_other_classes = np.where(np.logical_and(self.classId[indmaxB] != self.classId[k], self.classId[indmaxB] != 0))
-                    idx_same_classes = np.where(np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0))
+                    #idx_same_classes = np.where(np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0))
+                    #idx_same_classes = np.where(self.classId[indmaxB] == self.classId[k])[0] # np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0)
+                    
                     #maxB = np.delete(maxB, idx_other_classes)
+                    idx_same_classes = np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0)
                     maxB = maxB[idx_same_classes]
                     # leaving memeberships to unlabelled boxes
-                    #indmaxB = np.delete(indmaxB, idx_other_classes)
                     indmaxB = indmaxB[idx_same_classes]
                     
 #                    if len(maxB) > 30: # trim the set of memberships to speedup processing
@@ -182,13 +182,13 @@ class AccelBatchGFMM(object):
                         # agglomorate pairewise_maxb(i, 0) and pairewise_maxb(i, 1) by adjusting pairewise_maxb(i, 0)
                         # remove pairewise_maxb(i, 1) by getting newV from 1 -> pairewise_maxb(i, 0) - 1, new coordinates for pairewise_maxb(i, 0), from pairewise_maxb(i, 0) + 1 -> pairewise_maxb(i, 1) - 1, pairewise_maxb(i, 1) + 1 -> end
                         
-                        newV = np.vstack((self.V[0:int(pairewise_maxb[i, 0])], np.minimum(self.V[int(pairewise_maxb[i, 0])], self.V[int(pairewise_maxb[i, 1])]), self.V[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.V[int(pairewise_maxb[i, 1]) + 1:]))
-                        newW = np.vstack((self.W[0:int(pairewise_maxb[i, 0])], np.maximum(self.W[int(pairewise_maxb[i, 0])], self.W[int(pairewise_maxb[i, 1])]), self.W[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.W[int(pairewise_maxb[i, 1]) + 1:]))
-                        newClassId = np.hstack((self.classId[0:int(pairewise_maxb[i, 1])], self.classId[int(pairewise_maxb[i, 1]) + 1:]))
+                        newV = np.vstack((self.V[:int(pairewise_maxb[i, 0])], np.minimum(self.V[int(pairewise_maxb[i, 0])], self.V[int(pairewise_maxb[i, 1])]), self.V[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.V[int(pairewise_maxb[i, 1]) + 1:]))
+                        newW = np.vstack((self.W[:int(pairewise_maxb[i, 0])], np.maximum(self.W[int(pairewise_maxb[i, 0])], self.W[int(pairewise_maxb[i, 1])]), self.W[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.W[int(pairewise_maxb[i, 1]) + 1:]))
+                        newClassId = np.hstack((self.classId[:int(pairewise_maxb[i, 1])], self.classId[int(pairewise_maxb[i, 1]) + 1:]))
                         
                         # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
                         # position of adjustment is pairewise_maxb[i, 0] in new bounds
-                        if not isOverlap(newV, newW, int(pairewise_maxb[i, 0]), newClassId) and ((newW[int(pairewise_maxb[i, 0]), :] - newV[int(pairewise_maxb[i, 0]),:]) <= self.teta).all() == True:
+                        if (not isOverlap(newV, newW, int(pairewise_maxb[i, 0]), newClassId)) and (((newW[int(pairewise_maxb[i, 0])] - newV[int(pairewise_maxb[i, 0])]) <= self.teta).all() == True):
                             self.V = newV
                             self.W = newW
                             self.classId = newClassId
@@ -203,7 +203,7 @@ class AccelBatchGFMM(object):
                             
                             isTraining = True
                             
-                            if k != pairewise_maxb[i, 0]:
+                            if k != pairewise_maxb[i, 0]: # position pairewise_maxb[i, 1] (also k) is removed, so next step should start from pairewise_maxb[i, 1]
                                 k = k - 1
                                 
                             if self.isDraw:
@@ -211,7 +211,7 @@ class AccelBatchGFMM(object):
                                     hyperboxes[int(pairewise_maxb[i, 1])].remove()
                                     hyperboxes[int(pairewise_maxb[i, 0])].remove()
                                 except:
-                                    pass
+                                    print("No remove old hyperbox")
                                 
                                 Vt, Wt = self.pcatransform()
                                 
@@ -221,13 +221,13 @@ class AccelBatchGFMM(object):
                                 
                                 box = drawbox(np.asmatrix(Vt[int(pairewise_maxb[i, 0])]), np.asmatrix(Wt[int(pairewise_maxb[i, 0])]), drawing_canvas, box_color)
                                 plt.pause(self.delayConstant)
-                                hyperboxes[pairewise_maxb[i, 0].astype(np.int64)] = box[0]
+                                hyperboxes[int(pairewise_maxb[i, 0])] = box[0]
                                 hyperboxes.remove(hyperboxes[int(pairewise_maxb[i, 1])])
                                 
                             break # if hyperbox adjusted there's no need to look at other hyperboxes
                             
                         
-                k = k + 1
+                    k = k + 1
             
         
     def predict(self, Xl_Test, Xu_Test, patClassIdTest):
