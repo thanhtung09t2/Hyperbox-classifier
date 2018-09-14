@@ -112,6 +112,42 @@ class BaseGFMMClassifier(object):
         """
         plt.pause(self.delayConstant)
         
+        
+    def splitSimilarityMaxtrix(self, A, asimil_type = 'max', isSort = True):
+        """
+        Split the similarity matrix A into the maxtrix with three columns:
+            + First column is row indices of A
+            + Second column is column indices of A
+            + Third column is the values corresponding to the row and column
+        
+        if isSort = True, the third column is sorted in the descending order 
+        
+            INPUT
+                A               Degrees of membership of input patterns (each row is the output from memberG function)
+                asimil_type     Use 'min' or 'max' (default) memberhsip in case of assymetric similarity measure (simil='mid')
+                isSort          Sorting flag
+                
+            OUTPUT
+                The output as mentioned above
+        """
+        # get min/max memberships from triu and tril of memberhsip matrix which might not be symmetric (simil=='mid')
+        if asimil_type == 'min':
+            transformedA = np.minimum(np.flipud(np.rot90(np.tril(A, -1))), np.triu(A, 1))  # rotate tril to align it with triu for min (max) operation
+        else:
+            transformedA = np.maximum(np.flipud(np.rot90(np.tril(A, -1))), np.triu(A, 1))
+        
+        ind_rows, ind_columns = np.nonzero(transformedA)
+        values = A[ind_rows, ind_columns]
+        
+        if isSort == True:
+            ind_SortedTransformedA = np.argsort(values)[::-1]
+            sortedTransformedA = values[ind_SortedTransformedA]
+            result = np.hstack((ind_rows[ind_SortedTransformedA][:, np.newaxis], ind_columns[ind_SortedTransformedA][:, np.newaxis], sortedTransformedA[:, np.newaxis]))
+        else:
+            result = np.hstack((ind_rows[:, np.newaxis], ind_columns[:, np.newaxis], values[:, np.newaxis]))
+            
+        return result
+    
     
     def predict(self, Xl_Test, Xu_Test, patClassIdTest):
         """

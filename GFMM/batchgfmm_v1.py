@@ -2,11 +2,11 @@
 """
 Created on Thu Sep 13 14:57:55 2018
 
-@author: Khuat Thanh Tung
+@author: Thanh Tung Khuat
 
 Batch GFMM classifier (training core) - Faster version by only computing similarity among hyperboxes with the same label
 
-    BatchGFMM(gama, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range, cardin, clusters)
+    BatchGFMMV1(gama, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range, cardin, clusters)
   
     INPUT
         gama        Membership function slope (default: 1)
@@ -57,43 +57,7 @@ class BatchGFMMV1(BaseGFMMClassifier):
             self.sing = 'max'
         
         self.cardin = cardin
-        self.clusters = clusters
-        
-    
-    def splitSimilarityMaxtrix(self, A, asimil_type = 'max', isSort = True):
-        """
-        Split the similarity matrix A into the maxtrix with three columns:
-            + First column is row indices of A
-            + Second column is column indices of A
-            + Third column is the values corresponding to the row and column
-        
-        if isSort = True, the third column is sorted in the descending order 
-        
-            INPUT
-                A               Degrees of membership of input patterns (each row is the output from memberG function)
-                asimil_type     Use 'min' or 'max' (default) memberhsip in case of assymetric similarity measure (simil='mid')
-                isSort          Sorting flag
-                
-            OUTPUT
-                The output as mentioned above
-        """
-        # get min/max memberships from triu and tril of memberhsip matrix which might not be symmetric (simil=='mid')
-        if asimil_type == 'min':
-            transformedA = np.minimum(np.flipud(np.rot90(np.tril(A, -1))), np.triu(A, 1))  # rotate tril to align it with triu for min (max) operation
-        else:
-            transformedA = np.maximum(np.flipud(np.rot90(np.tril(A, -1))), np.triu(A, 1))
-        
-        ind_rows, ind_columns = np.nonzero(transformedA)
-        values = A[ind_rows, ind_columns]
-        
-        if isSort == True:
-            ind_SortedTransformedA = np.argsort(values)[::-1]
-            sortedTransformedA = values[ind_SortedTransformedA]
-            result = np.hstack((ind_rows[ind_SortedTransformedA][:, np.newaxis], ind_columns[ind_SortedTransformedA][:, np.newaxis], sortedTransformedA[:, np.newaxis]))
-        else:
-            result = np.hstack((ind_rows[:, np.newaxis], ind_columns[:, np.newaxis], values[:, np.newaxis]))
-            
-        return result
+        self.clusters = clusters       
         
     
     def fit(self, X_l, X_u, patClassId):
@@ -139,7 +103,7 @@ class BatchGFMMV1(BaseGFMMClassifier):
                 clMask[:, i] = self.classId == labList[i]
         
         	# calculate pairwise memberships *ONLY* within each class (faster!)
-            b = np.zeros(shape = (yX, yX), dtype = np.bool)
+            b = np.zeros(shape = (yX, yX))
             
             for i in range(len(labList)):
                 Vi = self.V[clMask[:, i]] # get bounds of patterns with class label i
@@ -197,9 +161,9 @@ class BatchGFMMV1(BaseGFMMClassifier):
                     
                     # update indexes to accomodate removed hyperbox
                     # indices of V and W larger than curmaxb(1,2) are decreased 1 by the element whithin the location curmaxb(1,2) was removed 
-                    #if len(maxb) > 0:
-                    maxb[maxb[:, 0] > int(curmaxb[1]), 0] = maxb[maxb[:, 0] > int(curmaxb[1]), 0] - 1
-                    maxb[maxb[:, 1] > int(curmaxb[1]), 1] = maxb[maxb[:, 1] > int(curmaxb[1]), 1] - 1
+                    if len(maxb) > 0:
+                        maxb[maxb[:, 0] > int(curmaxb[1]), 0] = maxb[maxb[:, 0] > int(curmaxb[1]), 0] - 1
+                        maxb[maxb[:, 1] > int(curmaxb[1]), 1] = maxb[maxb[:, 1] > int(curmaxb[1]), 1] - 1
                             
                     if self.isDraw:
                         Vt, Wt = self.pcatransform()
