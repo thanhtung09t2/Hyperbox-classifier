@@ -20,6 +20,7 @@ onlnGFMM - Online GFMM classifier (training core)
      isNorm         Do normalization of input training samples or not?
      norm_range     New ranging of input data after normalization    
 """
+
 import sys
 import ast
 import numpy as np
