@@ -7,6 +7,8 @@ Created on Fri Sep 14 10:22:19 2018
 Base GFMM classifier
 """
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 from classification import predict
 from matrixhelper import delete_const_dims
@@ -57,6 +59,7 @@ class BaseGFMMClassifier(object):
             
         return (X_l, X_u)
     
+    
     def pcatransform(self):
         """
         Perform PCA transform of V and W if the dimensions are larger than 3
@@ -79,6 +82,36 @@ class BaseGFMMClassifier(object):
             
         return (Vt, Wt)
     
+    def initializeCanvasGraph(self, figureName, numDims):
+        """
+        Initialize canvas to draw hyperbox
+        
+            INPUT
+                figureName          Title name of windows containing hyperboxes
+                numDims             The number of dimensions of hyperboxes
+                
+            OUTPUT
+                drawing_canvas      Plotting object of python
+        """
+        fig = plt.figure(figureName)
+        plt.ion()
+        if numDims == 2:
+            drawing_canvas = fig.add_subplot(1, 1, 1)
+            drawing_canvas.axis([0, 1, 0, 1])
+        else:
+            drawing_canvas = Axes3D(fig)
+            drawing_canvas.set_xlim3d(0, 1)
+            drawing_canvas.set_ylim3d(0, 1)
+            drawing_canvas.set_zlim3d(0, 1)
+            
+        return drawing_canvas
+    
+    def delay(self):
+        """
+        Delay a time period to display hyperboxes
+        """
+        plt.pause(self.delayConstant)
+        
     
     def predict(self, Xl_Test, Xu_Test, patClassIdTest):
         """

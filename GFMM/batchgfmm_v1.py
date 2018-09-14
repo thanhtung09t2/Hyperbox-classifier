@@ -37,9 +37,6 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
 from basegfmmclassifier import BaseGFMMClassifier
 from membershipcalc import memberG
 from drawinghelper import drawbox
@@ -53,7 +50,11 @@ class BatchGFMMV1(BaseGFMMClassifier):
         
         self.bthres = bthres
         self.simil = simil
-        self.sing = sing   
+        
+        if simil == 'mid':
+            self.sing = sing
+        else:
+            self.sing = 'max'
         
         self.cardin = cardin
         self.clusters = clusters
@@ -115,16 +116,7 @@ class BatchGFMMV1(BaseGFMMClassifier):
         
         if self.isDraw:
             mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
-            fig = plt.figure("GFMM - AGGLO-SM-fast version")
-            plt.ion()
-            if xX == 2:
-                drawing_canvas = fig.add_subplot(1, 1, 1)
-                drawing_canvas.axis([0, 1, 0, 1])
-            else:
-                drawing_canvas = Axes3D(fig)
-                drawing_canvas.set_xlim3d(0, 1)
-                drawing_canvas.set_ylim3d(0, 1)
-                drawing_canvas.set_zlim3d(0, 1)
+            drawing_canvas = self.initializeCanvasGraph("GFMM - AGGLO-SM-fast version", xX)
                 
             # plot initial hyperbox
             Vt, Wt = self.pcatransform()
@@ -132,7 +124,7 @@ class BatchGFMMV1(BaseGFMMClassifier):
             for c in range(len(self.classId)):
                 color_[c] = mark_col[self.classId[c]]
             drawbox(Vt, Wt, drawing_canvas, color_)
-            plt.pause(self.delayConstant)
+            self.delay()
         
         # training
         isTraining = True
@@ -141,7 +133,7 @@ class BatchGFMMV1(BaseGFMMClassifier):
             
             # calculate class masks
             yX, xX = self.V.shape
-            labList = np.unique(self.classId)
+            labList = np.unique(self.classId)[::-1]
             clMask = np.zeros(shape = (yX, len(labList)), dtype = np.bool)
             for i in range(len(labList)):
                 clMask[:, i] = self.classId == labList[i]
@@ -168,7 +160,7 @@ class BatchGFMMV1(BaseGFMMClassifier):
             if yX == 1:
                 maxb = np.array([])
             else:
-                maxb = self.splitSimilarityMaxtrix(b, self.sing, True)
+                maxb = self.splitSimilarityMaxtrix(b, self.sing, False)
                 if len(maxb) > 0:
                     maxb = maxb[(maxb[:, 2] >= self.bthres), :]
                     
@@ -216,9 +208,11 @@ class BatchGFMMV1(BaseGFMMClassifier):
                             color_[c] = mark_col[self.classId[c]]
                         drawing_canvas.cla()
                         drawbox(Vt, Wt, drawing_canvas, color_)
-                        plt.pause(self.delayConstant)
+                        self.delay()
                 else:
                     maxb = maxb[1:, :]  # scrap examined pair from the list
+                    
+        return self
 
                   
 if __name__ == '__main__':

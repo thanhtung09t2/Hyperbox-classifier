@@ -26,15 +26,11 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
 from membershipcalc import memberG
 from hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
 from classification import predict
 from drawinghelper import drawbox
 from prepocessinghelper import loadDataset, string_to_boolean
-from prepocessinghelper import normalize
 from basegfmmclassifier import BaseGFMMClassifier
 
 class OnlineGFMM(BaseGFMMClassifier):
@@ -72,16 +68,7 @@ class OnlineGFMM(BaseGFMMClassifier):
         listInputSamplePoints = list();
         
         if self.isDraw:
-            fig = plt.figure("GFMM - Online learning")
-            plt.ion()
-            if xX == 2:
-                drawing_canvas = fig.add_subplot(1, 1, 1)
-                drawing_canvas.axis([0, 1, 0, 1])
-            else:
-                drawing_canvas = Axes3D(fig)
-                drawing_canvas.set_xlim3d(0, 1)
-                drawing_canvas.set_ylim3d(0, 1)
-                drawing_canvas.set_zlim3d(0, 1)
+            drawing_canvas = self.initializeCanvasGraph("GFMM - Online learning", xX)
             
         while self.misclass > 0 and teta >= self.tMin:
             # for each input sample
@@ -113,7 +100,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                         inputPoint = drawbox(np.asmatrix(X_l[i, 0:np.minimum(xX, 3)]), np.asmatrix(X_u[i, 0:np.minimum(xX, 3)]), drawing_canvas, color_)
                         
                     listInputSamplePoints.append(inputPoint[0])
-                    plt.pause(self.delayConstant)
+                    self.delay()
                     
                 if self.V.size == 0:   # no model provided - starting from scratch
                     self.V = np.array([X_l[0]])
@@ -128,7 +115,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                         
                         hyperbox = drawbox(np.asmatrix(self.V[0, 0:np.minimum(xX,3)]), np.asmatrix(self.W[0, 0:np.minimum(xX,3)]), drawing_canvas, box_color)
                         listLines.append(hyperbox[0])
-                        plt.pause(self.delayConstant)
+                        self.delay()
 
                 else:
                     b = memberG(X_l[i], X_u[i], self.V, self.W, self.gamma)
@@ -166,7 +153,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                                     
                                     hyperbox = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)                                 
                                     listLines[j] = hyperbox[0]
-                                    plt.pause(self.delayConstant)
+                                    self.delay()
                                     
                                 break
                                 
@@ -184,7 +171,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                                     
                                 hyperbox = drawbox(np.asmatrix(X_l[i, 0:np.minimum(xX, 3)]), np.asmatrix(X_u[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
                                 listLines.append(hyperbox[0])
-                                plt.pause(self.delayConstant)
+                                self.delay()
                                 
                         elif self.V.shape[0] > 1:
                             for ii in range(self.V.shape[0]):
@@ -211,7 +198,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                                             hyperboxes = drawbox(self.V[[ii, indOfWinner], 0:np.minimum(xX, 3)], self.W[[ii, indOfWinner], 0:np.minimum(xX, 3)], drawing_canvas, [boxii_color, boxwin_color])                                          
                                             listLines[ii] = hyperboxes[0]
                                             listLines[indOfWinner] = hyperboxes[1]                                      
-                                            plt.pause(self.delayConstant)
+                                            self.delay()
                             
            						
             teta = teta * 0.9
@@ -227,10 +214,10 @@ class OnlineGFMM(BaseGFMMClassifier):
 #                color_[c] = mark_col[self.classId[c]]
 #                
 #            drawbox(self.V[:, 0:np.minimum(xX, 3)], self.W[:, 0:np.minimum(xX, 3)], drawing_canvas, color_)
-#            plt.pause(self.delayConstant)
+#            self.delay()
 #                
-        if self.isDraw:
-            plt.show()
+#        if self.isDraw:
+#            plt.show()
 
         return self
     

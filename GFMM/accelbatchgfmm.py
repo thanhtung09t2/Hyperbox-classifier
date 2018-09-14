@@ -33,9 +33,6 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
 from prepocessinghelper import loadDataset, string_to_boolean
 from membershipcalc import asym_similarity_one_many, memberG
 from drawinghelper import drawbox
@@ -73,16 +70,7 @@ class AccelBatchGFMM(BaseGFMMClassifier):
         
         if self.isDraw:
             mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
-            fig = plt.figure("GFMM - AGGLO-2")
-            plt.ion()
-            if xX == 2:
-                drawing_canvas = fig.add_subplot(1, 1, 1)
-                drawing_canvas.axis([0, 1, 0, 1])
-            else:
-                drawing_canvas = Axes3D(fig)
-                drawing_canvas.set_xlim3d(0, 1)
-                drawing_canvas.set_ylim3d(0, 1)
-                drawing_canvas.set_zlim3d(0, 1)
+            drawing_canvas = self.initializeCanvasGraph("GFMM - AGGLO-2", xX)
                 
             # plot initial hyperbox
             Vt, Wt = self.pcatransform()
@@ -90,7 +78,7 @@ class AccelBatchGFMM(BaseGFMMClassifier):
             for c in range(len(self.classId)):
                 color_[c] = mark_col[self.classId[c]]
             boxes = drawbox(Vt, Wt, drawing_canvas, color_)
-            plt.pause(self.delayConstant)
+            self.delay()
             hyperboxes = list(boxes)
             
         # training
@@ -178,7 +166,7 @@ class AccelBatchGFMM(BaseGFMMClassifier):
                                     box_color = mark_col[self.classId[int(pairewise_maxb[i, 0])]]
                                 
                                 box = drawbox(np.asmatrix(Vt[int(pairewise_maxb[i, 0])]), np.asmatrix(Wt[int(pairewise_maxb[i, 0])]), drawing_canvas, box_color)
-                                plt.pause(self.delayConstant)
+                                self.delay()
                                 hyperboxes[int(pairewise_maxb[i, 0])] = box[0]
                                 hyperboxes.remove(hyperboxes[int(pairewise_maxb[i, 1])])
                                 
@@ -186,6 +174,8 @@ class AccelBatchGFMM(BaseGFMMClassifier):
                             
                         
                     k = k + 1
+                    
+        return self
             
         
     
