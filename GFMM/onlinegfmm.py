@@ -51,7 +51,7 @@ class OnlineGFMM(object):
         self.isNorm = isNorm
         self.loLim = norm_range[0]
         self.hiLim = norm_range[1]
-        self.delayConstant = 0.001 # delay time period to display hyperboxes on the canvas
+        self.delayConstant = 0.0001 # delay time period to display hyperboxes on the canvas
         
     def fit(self, X_l, X_u, patClassId):
         """

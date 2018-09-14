@@ -131,7 +131,7 @@ class AccelBatchGFMM(object):
             color_ = np.empty(len(self.classId), dtype = object)
             for c in range(len(self.classId)):
                 color_[c] = mark_col[self.classId[c]]
-            boxes = drawbox(Vt, Wt, plt, color_)
+            boxes = drawbox(Vt, Wt, drawing_canvas, color_)
             plt.pause(self.delayConstant)
             hyperboxes = list(boxes)
             

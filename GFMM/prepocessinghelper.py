@@ -83,8 +83,8 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
     Xtr = np.empty((0, XA - 1), dtype=np.float64)
     Xtest = np.empty((0, XA - 1), dtype=np.float64)
     
-    patClassIdTr = np.array([], dtype=np.int16)
-    patClassIdTest = np.array([], dtype=np.int16)
+    patClassIdTr = np.array([], dtype=np.int64)
+    patClassIdTest = np.array([], dtype=np.int64)
     
     if percentTr != 1 and percentTr != 0:
         noClasses = classLabels.size
@@ -109,14 +109,14 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
     else:
         if percentTr == 1:
             Xtr = X_data
-            patClassIdTr = np.array(classId_dat, dtype=np.int16)
+            patClassIdTr = np.array(classId_dat, dtype=np.int64)
             Xtest = np.array([])
             patClassIdTest = np.array([])
         else:
             Xtr = np.array([])
             patClassIdTr = np.array([])
             Xtest = X_data
-            patClassIdTest = np.array(classId_dat, dtype=np.int16)
+            patClassIdTest = np.array(classId_dat, dtype=np.int64)
         
     return (Xtr, Xtest, patClassIdTr, patClassIdTest)
 
