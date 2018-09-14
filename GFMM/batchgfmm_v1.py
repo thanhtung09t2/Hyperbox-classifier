@@ -80,7 +80,7 @@ class BatchGFMMV1(BaseGFMMClassifier):
         
         if self.isDraw:
             mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
-            drawing_canvas = self.initializeCanvasGraph("GFMM - AGGLO-SM-fast version", xX)
+            drawing_canvas = self.initializeCanvasGraph("GFMM - AGGLO-SM-Fast version", xX)
                 
             # plot initial hyperbox
             Vt, Wt = self.pcatransform()
@@ -180,15 +180,85 @@ class BatchGFMMV1(BaseGFMMClassifier):
 
                   
 if __name__ == '__main__':
-    training_file = 'synthetic_train.dat'
-    testing_file = 'synthetic_test.dat'
+    """
+    INPUT parameters from command line
+    arg1: + 1 - training and testing datasets are located in separated files
+          + 2 - training and testing datasets are located in the same files
+    arg2: path to file containing the training dataset (arg1 = 1) or both training and testing datasets (arg1 = 2)
+    arg3: + path to file containing the testing dataset (arg1 = 1)
+          + percentage of the training dataset in the input file
+    arg4: + True: drawing hyperboxes during the training process
+          + False: no drawing
+    arg5: + Maximum size of hyperboxes (teta, default: 1)
+    arg6: + gamma value (default: 1)
+    arg7: + Similarity threshod (default: 0.5)
+    arg8: + Similarity measure: 'short', 'long' or 'mid' (default: 'mid')
+    arg9: + operation used to compute membership value: 'min' or 'prod' (default: 'min')
+    arg10: + do normalization of datasets or not? True: Normilize, False: No normalize (default: True)
+    arg11: + range of input values after normalization (default: [0, 1])   
+    arg12: + Use 'min' or 'max' (default) memberhsip in case of assymetric similarity measure (simil='mid')
+    """
+    # Init default parameters
+    if len(sys.argv) < 5:
+        isDraw = False
+    else:
+        isDraw = string_to_boolean(sys.argv[4])
     
-    # Read training file
-    Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset(training_file, 1, False)
-    # Read testing file
-    X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
+    if len(sys.argv) < 6:
+        teta = 1    
+    else:
+        teta = float(sys.argv[5])
     
-    classifier = BatchGFMMV1(1, 0.6, 0.5, 'short', 'min', True)
+    if len(sys.argv) < 7:
+        gamma = 1
+    else:
+        gamma = float(sys.argv[6])
+    
+    if len(sys.argv) < 8:
+        bthres = 0.5
+    else:
+        bthres = float(sys.argv[7])
+    
+    if len(sys.argv) < 9:
+        simil = 'mid'
+    else:
+        simil = sys.argv[8]
+    
+    if len(sys.argv) < 10:
+        oper = 'min'
+    else:
+        oper = sys.argv[9]
+    
+    if len(sys.argv) < 11:
+        isNorm = True
+    else:
+        isNorm = string_to_boolean(sys.argv[10])
+    
+    if len(sys.argv) < 12:
+        norm_range = [0, 1]
+    else:
+        norm_range = ast.literal_eval(sys.argv[11])
+        
+    if len(sys.argv) < 13:
+        sing = 'max'
+    else:
+        sing = sys.argv[12]
+        
+    if sys.argv[1] == '1':
+        training_file = sys.argv[2]
+        testing_file = sys.argv[3]
+
+        # Read training file
+        Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset(training_file, 1, False)
+        # Read testing file
+        X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
+    
+    else:
+        dataset_file = sys.argv[2]
+        percent_Training = float(sys.argv[3])
+        Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(dataset_file, percent_Training, False)
+    
+    classifier = BatchGFMMV1(gamma, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range)
     classifier.fit(Xtr, Xtr, patClassIdTr)
     
     # Testing
@@ -197,4 +267,4 @@ if __name__ == '__main__':
     if result != None:
         print("Number of wrong predicted samples = ", result.summis)
         numTestSample = Xtest.shape[0]
-        print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")                
+        print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")
