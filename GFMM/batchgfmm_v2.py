@@ -106,11 +106,90 @@ class BatchGFMMV2(BaseGFMMClassifier):
                 
         maxb = self.splitSimilarityMaxtrix(b, self.sing) # get a sorted similarity (membership) list
         if len(maxb) > 0:
-            maxb = maxb[maxb[:, 3] >= self.bthres, :] # scrap memberhsip values below threshold
+            maxb = maxb[maxb[:, 2] >= self.bthres, :] # scrap memberhsip values below threshold
             
         # training
         isTraining = True
         while isTraining:
             isTraining = False
             
+            i = 0
+            while i < maxb.shape[0]:
+                # if maxb(i, 0)-th and maxb(i, 1)-th come from the same class, try to join them
+                if self.classId[int(maxb[i, 0])] == self.classId[int(maxb[i, 1])]:
+                    # calculate new coordinates of maxb(i,0)-th hyperbox by including maxb(i,1)-th box, scrap the latter and leave the rest intact
+                    # agglomorate maxb(i, 0) and maxb(i, 1) by adjust maxb(i, 0), remove maxb(i, 1) by get newV from 1:maxb(i, 0) - 1, new coordinates for maxb(i, 0), maxb(i, 0) + 1:maxb(i, 1) - 1, maxb(i, 1) + 1:end
+                    newV = np.vstack((self.V[:int(maxb[i, 0])], np.minimum(self.V[int(maxb[i, 0])], self.V[int(maxb[i, 1])]), self.V[int(maxb[i, 0]) + 1:int(maxb[i, 1])], self.V[int(maxb[i, 1]) + 1:]))
+                    newW = np.vstack((self.W[:int(maxb[i, 0])], np.maximum(self.W[int(maxb[i, 0])], self.W[int(maxb[i, 1])]), self.W[int(maxb[i, 0]) + 1:int(maxb[i, 1])], self.W[int(maxb[i, 1]) + 1:]))
+                    newClassId = np.hstack((self.classId[:int(maxb[i, 1])], self.classId[int(maxb[i, 1]) + 1:]))
+                        
+                    # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
+                    if (not isOverlap(newV, newW, int(maxb[i, 0]), newClassId)) and (((newW[int(maxb[i, 0])] - newV[int(maxb[i, 0])]) <= self.teta).all() == True):
+                        isTraining = True
+                        self.V = newV
+                        self.W = newW
+                        self.classId = newClassId
+                        
+                        self.cardin[int(maxb[i, 0])] = self.cardin[int(maxb[i, 0])] + self.cardin[int(maxb[i, 1])]
+                        self.cardin = np.append(self.cardin[0:int(maxb[i, 1])], self.cardin[int(maxb[i, 1]) + 1:])
+                                
+                        self.clusters[int(maxb[i, 0])] = np.append(self.clusters[int(maxb[i, 0])], self.clusters[int(maxb[i, 1])])
+                        self.clusters = np.append(self.clusters[0:int(maxb[i, 1])], self.clusters[int(maxb[i, 1]) + 1:])
+                        
+                        # recalculate all pairwise memberships
+                        yX, xX = self.V.shape
+                        b = np.zeros(shape = (yX, yX))
+                        if self.simil == 'short':
+                            for j in range(yX):
+                                b[j, :] = memberG(self.W[j], self.V[j], self.V, self.W, self.gamma, self.oper)
+                        
+                        elif self.simil == 'long':
+                            for j in range(yX):
+                                b[j, :] = memberG(self.V[j], self.W[j], self.W, self.V, self.gamma, self.oper)
+                        
+                        else:
+                            for j in range(yX):
+                                b[j, :] = memberG(self.V[j], self.W[j], self.V, self.W, self.gamma, self.oper)
+                                
+                        if self.V.shape[0] == 1:
+                            maxb = np.array([])
+                        else:
+                            maxb = self.splitSimilarityMaxtrix(b, self.sing) # get a sorted similarity (membership) list
+                            
+                            if len(maxb) > 0:
+                                maxb = maxb[maxb[:, 2] >= self.bthres, :]
+                        if self.isDraw:
+                            Vt, Wt = self.pcatransform()
+                            color_ = np.empty(len(self.classId), dtype = object)
+                            for c in range(len(self.classId)):
+                                color_[c] = mark_col[self.classId[c]]
+                            drawing_canvas.cla()
+                            drawbox(Vt, Wt, drawing_canvas, color_)
+                            self.delay()
+                        
+                        break
+                        
+                i = i + 1
+        
+        return self
+    
+if __name__ == '__main__':
+    training_file = 'synthetic_train.dat'
+    testing_file = 'synthetic_test.dat'
+    
+    # Read training file
+    Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset(training_file, 1, False)
+    # Read testing file
+    X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
+    
+    classifier = BatchGFMMV2(1, 0.6, 0.5, 'short', 'min', True)
+    classifier.fit(Xtr, Xtr, patClassIdTr)
+    
+    # Testing
+    print("-- Testing --")
+    result = classifier.predict(Xtest, Xtest, patClassIdTest)
+    if result != None:
+        print("Number of wrong predicted samples = ", result.summis)
+        numTestSample = Xtest.shape[0]
+        print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")
 
