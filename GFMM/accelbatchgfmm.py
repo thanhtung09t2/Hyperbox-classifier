@@ -36,51 +36,20 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from matrixhelper import delete_const_dims, pca_transform
-from prepocessinghelper import normalize, loadDataset, string_to_boolean
+from prepocessinghelper import loadDataset, string_to_boolean
 from membershipcalc import asym_similarity_one_many, memberG
 from drawinghelper import drawbox
 from hyperboxadjustment import isOverlap
-from classification import predict
+from basegfmmclassifier import BaseGFMMClassifier
 
-class AccelBatchGFMM(object):
+class AccelBatchGFMM(BaseGFMMClassifier):
     
     def __init__(self, gamma = 1, teta = 1, bthres = 0.5, simil = 'mid', sing = 'max', isDraw = False, oper = 'min', isNorm = True, norm_range = [0, 1]):
-        self.gamma = gamma
-        self.teta = teta
+        BaseGFMMClassifier.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
+        
         self.bthres = bthres
         self.simil = simil
         self.sing = sing
-        self.isDraw = isDraw
-        self.oper = oper
-        self.isNorm = isNorm
-        self.loLim = norm_range[0]
-        self.hiLim = norm_range[1]
-        self.mins = []
-        self.maxs = []
-        self.delayConstant = 0.001 # delay time period to display hyperboxes on the canvas
-    
-    def pcatransform(self):
-        """
-        Perform PCA transform of V and W if the dimensions are larger than 3
-        
-        OUTPUT:
-            V and W in the new space
-        """
-        yX, xX = self.V.shape
-                
-        if (xX > 3):
-            Vt = pca_transform(self.V, 3)
-            Wt = pca_transform(self.W, 3)
-            mins = Vt.min(axis = 0)
-            maxs = Wt.max(axis = 0)
-            Vt = self.loLim + (self.hiLim - self.loLim) * (Vt - np.ones((yX, 1)) * mins) / (np.ones((yX, 1)) * (maxs - mins))
-            Wt = self.loLim + (self.hiLim - self.loLim) * (Wt - np.ones((yX, 1)) * mins) / (np.ones((yX, 1)) * (maxs - mins))
-        else:
-            Vt = self.V
-            Wt = self.W
-            
-        return (Vt, Wt)
     
     
     def fit(self, X_l, X_u, patClassId):  
@@ -89,19 +58,8 @@ class AccelBatchGFMM(object):
         Xu          Input data upper bounds (rows = objects, columns = features)
         patClassId  Input data class labels (crisp)
         """
-        # delete constant dimensions
-        X_l, X_u = delete_const_dims(X_l, X_u)
-        
-        # Normalize input samples if needed
-        if X_l.min() < self.loLim or X_u.min() < self.loLim or X_u.max() > self.hiLim or X_l.max() > self.hiLim:
-            self.mins = X_l.min(axis = 0) # get min value of each feature
-            self.maxs = X_u.max(axis = 0) # get max value of each feature
-            X_l = normalize(X_l, [self.loLim, self.hiLim])
-            X_u = normalize(X_u, [self.loLim, self.hiLim])
-        else:
-            self.isNorm = False
-            self.mins = []
-            self.maxs = []
+      
+        X_l, X_u = self.dataPreprocessing(X_l, X_u)
          
         self.V = X_l
         self.W = X_u
@@ -230,39 +188,6 @@ class AccelBatchGFMM(object):
                     k = k + 1
             
         
-    def predict(self, Xl_Test, Xu_Test, patClassIdTest):
-        """
-        Perform classification
-        
-            result = predict(Xl_Test, Xu_Test, patClassIdTest)
-        
-        INPUT:
-            Xl_Test             Test data lower bounds (rows = objects, columns = features)
-            Xu_Test             Test data upper bounds (rows = objects, columns = features)
-            patClassIdTest	     Test data class labels (crisp)
-            
-        OUTPUT:
-            result        A object with Bunch datatype containing all results as follows:
-                          + summis           Number of misclassified objects
-                          + misclass         Binary error map
-                          + sumamb           Number of objects with maximum membership in more than one class
-                          + out              Soft class memberships
-                          + mem              Hyperbox memberships
-        """
-        # Normalize testing dataset if training datasets were normalized
-        if len(self.mins) > 0:
-            noSamples = Xl_Test.shape[0]
-            Xl_Test = self.loLim + (self.hiLim - self.loLim) * (Xl_Test - np.ones((noSamples, 1)) * self.mins) / (np.ones((noSamples, 1)) * (self.maxs - self.mins))
-            Xu_Test = self.loLim + (self.hiLim - self.loLim) * (Xu_Test - np.ones((noSamples, 1)) * self.mins) / (np.ones((noSamples, 1)) * (self.maxs - self.mins))
-            
-            if Xl_Test.min() < self.loLim or Xu_Test.min() < self.loLim or Xl_Test.max() > self.hiLim or Xu_Test.max() > self.hiLim:
-                print('Test sample falls ousitde', self.loLim, '-', self.hiLim, 'interval')
-                return
-            
-        # do classification
-        result = predict(self.V, self.W, self.classId, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)
-        
-        return result
     
 if __name__ == '__main__':
     """

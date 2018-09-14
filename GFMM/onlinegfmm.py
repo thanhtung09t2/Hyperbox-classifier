@@ -35,23 +35,19 @@ from classification import predict
 from drawinghelper import drawbox
 from prepocessinghelper import loadDataset, string_to_boolean
 from prepocessinghelper import normalize
+from basegfmmclassifier import BaseGFMMClassifier
 
-class OnlineGFMM(object):
+class OnlineGFMM(BaseGFMMClassifier):
     
     def __init__(self, gamma = 1, teta = 1, tMin = 1, isDraw = False, oper = 'min', isNorm = False, norm_range = [0, 1], V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int16)):
-        self.gamma = gamma
-        self.teta = teta
+        BaseGFMMClassifier.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
+        
         self.tMin = tMin
         self.V = V
         self.W = W
         self.classId = classId
-        self.isDraw = isDraw
-        self.oper = oper
         self.misclass = 1
-        self.isNorm = isNorm
-        self.loLim = norm_range[0]
-        self.hiLim = norm_range[1]
-        self.delayConstant = 0.0001 # delay time period to display hyperboxes on the canvas
+        
         
     def fit(self, X_l, X_u, patClassId):
         """
@@ -63,22 +59,14 @@ class OnlineGFMM(object):
         
         """
         print('--Online Learning--')
+        
+        X_l, X_u = self.dataPreprocessing(X_l, X_u)
+        
         yX, xX = X_l.shape
         teta = self.teta
         
         mark = np.array(['*', 'o', 'x', '+', '.', ',', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', 'h', 'H', 'X', 'D', '|', '_'])
         mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
-        
-        # Normalize input samples if needed
-        if X_l.min() < self.loLim or X_u.min() < self.loLim or X_u.max() > self.hiLim or X_l.max() > self.hiLim:
-            self.mins = X_l.min(axis = 0) # get min value of each feature
-            self.maxs = X_u.max(axis = 0) # get max value of each feature
-            X_l = normalize(X_l, [self.loLim, self.hiLim])
-            X_u = normalize(X_u, [self.loLim, self.hiLim])
-        else:
-            self.isNorm = False
-            self.mins = []
-            self.maxs = []
         
         listLines = list()
         listInputSamplePoints = list();
@@ -246,39 +234,6 @@ class OnlineGFMM(object):
 
         return self
     
-    def predict(self, Xl_Test, Xu_Test, patClassIdTest):
-        """
-        Perform classification
-        
-            result = predict(Xl_Test, Xu_Test, patClassIdTest)
-        
-        INPUT:
-            Xl_Test             Test data lower bounds (rows = objects, columns = features)
-            Xu_Test             Test data upper bounds (rows = objects, columns = features)
-            patClassIdTest	     Test data class labels (crisp)
-            
-        OUTPUT:
-            result        A object with Bunch datatype containing all results as follows:
-                          + summis           Number of misclassified objects
-                          + misclass         Binary error map
-                          + sumamb           Number of objects with maximum membership in more than one class
-                          + out              Soft class memberships
-                          + mem              Hyperbox memberships
-        """
-        # Normalize testing dataset if training datasets were normalized
-        if len(self.mins) > 0:
-            noSamples = Xl_Test.shape[0]
-            Xl_Test = self.loLim + (self.hiLim - self.loLim) * (Xl_Test - np.ones((noSamples, 1)) * self.mins) / (np.ones((noSamples, 1)) * (self.maxs - self.mins))
-            Xu_Test = self.loLim + (self.hiLim - self.loLim) * (Xu_Test - np.ones((noSamples, 1)) * self.mins) / (np.ones((noSamples, 1)) * (self.maxs - self.mins))
-            
-            if Xl_Test.min() < self.loLim or Xu_Test.min() < self.loLim or Xl_Test.max() > self.hiLim or Xu_Test.max() > self.hiLim:
-                print('Test sample falls ousitde', self.loLim, '-', self.hiLim, 'interval')
-                return
-            
-        # do classification
-        result = predict(self.V, self.W, self.classId, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)
-        
-        return result
         
 if __name__ == '__main__':
     """

@@ -11,6 +11,7 @@ import numpy as np
 from classification import predict
 from matrixhelper import delete_const_dims
 from prepocessinghelper import normalize
+from matrixhelper import pca_transform
 
 class BaseGFMMClassifier(object):
     
@@ -55,6 +56,28 @@ class BaseGFMMClassifier(object):
             self.maxs = []
             
         return (X_l, X_u)
+    
+    def pcatransform(self):
+        """
+        Perform PCA transform of V and W if the dimensions are larger than 3
+        
+        OUTPUT:
+            V and W in the new space
+        """
+        yX, xX = self.V.shape
+                
+        if (xX > 3):
+            Vt = pca_transform(self.V, 3)
+            Wt = pca_transform(self.W, 3)
+            mins = Vt.min(axis = 0)
+            maxs = Wt.max(axis = 0)
+            Vt = self.loLim + (self.hiLim - self.loLim) * (Vt - np.ones((yX, 1)) * mins) / (np.ones((yX, 1)) * (maxs - mins))
+            Wt = self.loLim + (self.hiLim - self.loLim) * (Wt - np.ones((yX, 1)) * mins) / (np.ones((yX, 1)) * (maxs - mins))
+        else:
+            Vt = self.V
+            Wt = self.W
+            
+        return (Vt, Wt)
     
     
     def predict(self, Xl_Test, Xu_Test, patClassIdTest):

@@ -44,7 +44,6 @@ from basegfmmclassifier import BaseGFMMClassifier
 from membershipcalc import memberG
 from drawinghelper import drawbox
 from hyperboxadjustment import isOverlap
-from matrixhelper import pca_transform
 from prepocessinghelper import loadDataset, string_to_boolean
 
 class BatchGFMMV1(BaseGFMMClassifier):
@@ -59,28 +58,6 @@ class BatchGFMMV1(BaseGFMMClassifier):
         self.cardin = cardin
         self.clusters = clusters
         
-        
-    def pcatransform(self):
-        """
-        Perform PCA transform of V and W if the dimensions are larger than 3
-        
-        OUTPUT:
-            V and W in the new space
-        """
-        yX, xX = self.V.shape
-                
-        if (xX > 3):
-            Vt = pca_transform(self.V, 3)
-            Wt = pca_transform(self.W, 3)
-            mins = Vt.min(axis = 0)
-            maxs = Wt.max(axis = 0)
-            Vt = self.loLim + (self.hiLim - self.loLim) * (Vt - np.ones((yX, 1)) * mins) / (np.ones((yX, 1)) * (maxs - mins))
-            Wt = self.loLim + (self.hiLim - self.loLim) * (Wt - np.ones((yX, 1)) * mins) / (np.ones((yX, 1)) * (maxs - mins))
-        else:
-            Vt = self.V
-            Wt = self.W
-            
-        return (Vt, Wt)
     
     def splitSimilarityMaxtrix(self, A, asimil_type = 'max', isSort = True):
         """
@@ -191,7 +168,7 @@ class BatchGFMMV1(BaseGFMMClassifier):
             if yX == 1:
                 maxb = np.array([])
             else:
-                maxb = self.splitSimilarityMaxtrix(b, self.sing, False)
+                maxb = self.splitSimilarityMaxtrix(b, self.sing, True)
                 if len(maxb) > 0:
                     maxb = maxb[(maxb[:, 2] >= self.bthres), :]
                     
