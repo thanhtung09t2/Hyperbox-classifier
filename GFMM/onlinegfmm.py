@@ -121,18 +121,14 @@ class OnlineGFMM(BaseGFMMClassifier):
                 else:
                     b = memberG(X_l[i], X_u[i], self.V, self.W, self.gamma)
                         
-                    index = np.argsort(b);
+                    index = np.argsort(b)[::-1]
                     bSort = b[index];
                     
-                    #if bSort[-1] == 1 and (patClassId[i] == self.classId[index[-1]] or patClassId[i] == 0):
-                        #classOfX = patClassId[i]
-                    #else:
-                    if bSort[-1] != 1 or (classOfX != self.classId[index[-1]] and classOfX != 0):
-                        reversed_index = index[::-1]
+                    if bSort[0] != 1 or (classOfX != self.classId[index[0]] and classOfX != 0):
                         adjust = False
-                        for j in reversed_index:
+                        for j in index:
                             # test violation of max hyperbox size and class labels
-                            if ((np.maximum(self.W[j], X_u[i]) - np.minimum(self.V[j], X_l[i])) <= self.teta).min() == True and (classOfX == self.classId[j] or self.classId[j] == 0 or classOfX == 0):
+                            if ((np.maximum(self.W[j], X_u[i]) - np.minimum(self.V[j], X_l[i])) <= teta).all() == True and (classOfX == self.classId[j] or self.classId[j] == 0 or classOfX == 0):
                                 # adjust the j-th hyperbox
                                 self.V[j] = np.minimum(self.V[j], X_l[i])
                                 self.W[j] = np.maximum(self.W[j], X_u[i])
