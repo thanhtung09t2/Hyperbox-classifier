@@ -166,6 +166,17 @@ def loadDatasetWithoutClassLabel(path, percentTr, isNorm = False, new_range = [0
             Xtest = X_data
         
     return (Xtr, Xtest)
+
+
+def saveDataToFile(path, X_data):
+    """
+    Save data to file
+    
+    INPUT
+        path        The path to the data file (including file name)
+        X_data      The data need to be stored
+    """
+    np.savetxt(path, X_data, fmt='%f', delimiter=', ')   
     
 
 def string_to_boolean(st):
