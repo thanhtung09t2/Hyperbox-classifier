@@ -120,6 +120,54 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
         
     return (Xtr, Xtest, patClassIdTr, patClassIdTest)
 
+def loadDatasetWithoutClassLabel(path, percentTr, isNorm = False, new_range = [0, 1]):
+    """
+    Load file containing dataset without class label and convert data in the file to training and testing datasets.
+    
+        Xtr, Xtest = loadDatasetWithoutClassLabel(path, percentTr, True, [0, 1])
+    
+    INPUT
+       path             the path to the data file (including file name)
+       percentTr        the percentage of data used for training (0 <= percentTr <= 1)
+       isNorm           identify whether normalizing datasets or not, True => Normalized
+       new_range        new range of datasets after normalization
+
+    OUTPUT
+       Xtr              Training dataset
+       Xtest            Testing dataset
+       
+    """
+    X_data = np.array([], dtype=np.float64)
+    with open(path) as f:
+        for line in f:
+            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float64, sep=' ')
+            if (X_data.size == 0):
+                X_data = nums
+            else:
+                X_data = np.vstack((X_data, nums))
+
+    if isNorm:
+        X_data = normalize(X_data, new_range)
+        
+    # randomly shuffle indices of elements in the dataset
+    numSamples = X_data.shape[0]
+    newInds = np.random.permutation(numSamples)
+    
+    if percentTr != 1 and percentTr != 0:
+        noTrain = int(numSamples * percentTr + 0.5)
+        Xtr = X_data[newInds[0:noTrain], :]
+        Xtest = X_data[newInds[noTrain:], :]
+    else:
+        if percentTr == 1:
+            Xtr = X_data
+            Xtest = np.array([])
+        else:
+            Xtr = np.array([])
+            Xtest = X_data
+        
+    return (Xtr, Xtest)
+    
+
 def string_to_boolean(st):
     if st == "True" or st == "true":
         return True
