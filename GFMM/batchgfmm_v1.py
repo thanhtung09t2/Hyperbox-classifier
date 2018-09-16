@@ -37,16 +37,16 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 
-from basegfmmclassifier import BaseGFMMClassifier
+from basebatchlearninggfmm import BaseBatchLearningGFMM
 from membershipcalc import memberG
 from drawinghelper import drawbox
 from hyperboxadjustment import isOverlap
 from prepocessinghelper import loadDataset, string_to_boolean
 
-class BatchGFMMV1(BaseGFMMClassifier):
+class BatchGFMMV1(BaseBatchLearningGFMM):
     
     def __init__(self, gamma = 1, teta = 1, bthres = 0.5, simil = 'mid', sing = 'max', isDraw = False, oper = 'min', isNorm = True, norm_range = [0, 1], cardin = np.array([], dtype=np.int64), clusters = np.array([], dtype=object)):
-        BaseGFMMClassifier.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
+        BaseBatchLearningGFMM.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
         
         self.bthres = bthres
         self.simil = simil

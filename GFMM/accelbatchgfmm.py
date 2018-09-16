@@ -38,12 +38,12 @@ from prepocessinghelper import loadDataset, string_to_boolean
 from membershipcalc import asym_similarity_one_many, memberG
 from drawinghelper import drawbox
 from hyperboxadjustment import isOverlap
-from basegfmmclassifier import BaseGFMMClassifier
+from basebatchlearninggfmm import BaseBatchLearningGFMM
 
-class AccelBatchGFMM(BaseGFMMClassifier):
+class AccelBatchGFMM(BaseBatchLearningGFMM):
     
     def __init__(self, gamma = 1, teta = 1, bthres = 0.5, simil = 'mid', sing = 'max', isDraw = False, oper = 'min', isNorm = True, norm_range = [0, 1]):
-        BaseGFMMClassifier.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
+        BaseBatchLearningGFMM.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
         
         self.bthres = bthres
         self.simil = simil
