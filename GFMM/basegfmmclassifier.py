@@ -23,6 +23,10 @@ class BaseGFMMClassifier(object):
         self.isDraw = isDraw
         self.oper = oper
         self.isNorm = isNorm
+        
+        self.V = np.array([])
+        self.W = np.array([])
+        self.classId = np.array([])
       
         # parameters for data normalization
         self.loLim = norm_range[0]

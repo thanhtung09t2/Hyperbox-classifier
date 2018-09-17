@@ -16,9 +16,6 @@ class BaseBatchLearningGFMM(BaseGFMMClassifier):
     def __init__(self, gamma = 1, teta = 1, isDraw = False, oper = 'min', isNorm = True, norm_range = [0, 1]):
         BaseGFMMClassifier.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
         
-        self.V = np.array([])
-        self.W = np.array([])
-        self.classId = np.array([])
         self.cardin = np.array([])
         self.clusters = np.empty(None, dtype=object)
 

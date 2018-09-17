@@ -70,3 +70,60 @@ def predict(V, W, classId, XlT, XuT, patClassIdTest, gama = 1, oper = 'min'):
     result = Bunch(summis = summis, misclass = misclass, sumamb = sumamb, out = out, mem = mem)
     return result
 
+
+def predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama = 1, oper = 'min'):
+    """
+    Perform classification for a decision level ensemble learning
+    
+                summis, misclass, out, classes = predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama, oper)
+    
+    INPUT
+        classifiers         An array of classifiers needed to combine, datatype of each element in the array is BaseGFMMClassifier
+        XlT                 Test data lower bounds (rows = objects, columns = features)
+        XuT                 Test data upper bounds (rows = objects, columns = features)
+        patClassIdTest      Test data class labels (crisp)
+        gama                Membership function slope (default: 1)
+        oper                Membership calculation operation: 'min' or 'prod' (default: 'min')
+        
+    OUTPUT
+        summis              Number of misclassified samples
+        misclass            Binary error map for input samples
+        out                 Soft class memberships, rows are testing input patterns, columns are indices of classes
+        classes             Store class labels corresponding column indices of out
+    """
+    numClassifier = len(classifiers)
+    
+    yX = XlT.shape[0]
+    misclass = np.zeros(yX, dtype=np.bool)
+    classes = np.unique(classifiers[0].classId)
+    noClasses = len(classes)
+    out = np.zeros((yX, noClasses), dtype=np.float64)
+    
+    # classification of each testing pattern i
+    for i in range(yX):
+        for idClf in range(numClassifier):
+            # calculate memberships for all hyperboxes of classifier idClf
+            mem_tmp = memberG(XlT[i, :], XuT[i, :], classifiers[idClf].V, classifiers[idClf].W, gama, oper)
+            
+            for j in range(noClasses):
+                # get max membership of hyperobxes with class label j
+                mem_max = mem_tmp[classifiers[idClf].classId == classes[j]].max()
+                
+                if len(mem_max) > 0:
+                    out[i, j] = out[i, j] + mem_max
+        
+        # compute membership value of each class over all classifiers            
+        out[i, :] = out[i, :] / numClassifier
+        # get max membership value for each class with regard to the i-th sample
+        maxb = out[i].max()
+        # get positions of indices of all classes with max membership
+        maxMemInd = out[i] == maxb
+        misclass[i] = np.logical_or((classes[maxMemInd] == patClassIdTest[i]).any(), patClassIdTest[i] == 0)
+        
+    # count number of missclassified patterns
+    summis = np.sum(misclass)
+    
+    return (summis, misclass, out, classes)
+        
+        
+    
