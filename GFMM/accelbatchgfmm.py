@@ -6,10 +6,10 @@ Created on Mon Sep 10 09:42:14 2018
 
     Accelerated Batch GFMM classifier (training core)
         
-        AccelBatchGFMM(gama, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range)
+        AccelBatchGFMM(gamma, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range)
   
     INPUT:
-        gama            Membership function slope (default: 1)
+        gamma           Membership function slope (default: 1)
         teta            Maximum hyperbox size (default: 1)
         bthres          Similarity threshold for hyperbox concatenetion (default: 0.5)
         simil           Similarity measure: 'short', 'long' or 'mid' (default: 'mid')

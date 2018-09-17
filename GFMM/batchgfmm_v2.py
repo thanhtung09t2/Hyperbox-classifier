@@ -6,10 +6,10 @@ Created on Fri Sep 14 11:46:02 2018
 
 Batch GFMM classifier (training core) - Slower version as mentioned in the paper
 
-    BatchGFMMV2(gama, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range, cardin, clusters)
+    BatchGFMMV2(gamma, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range, cardin, clusters)
   
     INPUT
-        gama        Membership function slope (default: 1)
+        gamma        Membership function slope (default: 1)
         teta        Maximum hyperbox size (default: 1)
         bthres		Similarity threshold for hyperbox concatenetion (default: 0.5)
         simil       Similarity measure: 'short', 'long' or 'mid' (default: 'mid')
