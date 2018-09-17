@@ -16,7 +16,6 @@ Batch GFMM classifier (training core) - Slower version as mentioned in the paper
         sing        Use 'min' or 'max' (default) memberhsip in case of assymetric similarity measure (simil='mid')
         oper        Membership calculation operation: 'min' or 'prod' (default: 'min')
         isDraw      Progress plot flag (default: 1)
-        oper        Membership calculation operation: 'min' or 'prod' (default: 'min')
         isNorm      Do normalization of input training samples or not?
         norm_range  New ranging of input data after normalization, for example: [0, 1]
         cardin      Input hyperbox cardinalities

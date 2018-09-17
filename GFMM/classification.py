@@ -75,7 +75,7 @@ def predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama = 1
     """
     Perform classification for a decision level ensemble learning
     
-                summis, misclass, out, classes = predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama, oper)
+                result = predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama, oper)
     
     INPUT
         classifiers         An array of classifiers needed to combine, datatype of each element in the array is BaseGFMMClassifier
@@ -86,10 +86,11 @@ def predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama = 1
         oper                Membership calculation operation: 'min' or 'prod' (default: 'min')
         
     OUTPUT
-        summis              Number of misclassified samples
-        misclass            Binary error map for input samples
-        out                 Soft class memberships, rows are testing input patterns, columns are indices of classes
-        classes             Store class labels corresponding column indices of out
+        result              A object with Bunch datatype containing all results as follows:
+                                + summis        Number of misclassified samples
+                                + misclass      Binary error map for input samples
+                                + out           Soft class memberships, rows are testing input patterns, columns are indices of classes
+                                + classes       Store class labels corresponding column indices of out
     """
     numClassifier = len(classifiers)
     
@@ -123,7 +124,8 @@ def predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama = 1
     # count number of missclassified patterns
     summis = np.sum(misclass)
     
-    return (summis, misclass, out, classes)
+    result = Bunch(summis = summis, misclass = misclass, out = out, classes = classes)
+    return result
         
         
     

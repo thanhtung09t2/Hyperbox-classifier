@@ -9,6 +9,7 @@ Preprocessing functions helper
 """
 
 import numpy as np
+from bunchdatatype import Bunch
 
 def normalize(A, new_range):
     """
@@ -186,3 +187,93 @@ def string_to_boolean(st):
         return False
     else:
         raise ValueError
+        
+
+def splitDatasetRndToKPart(Xl, Xu, patClassId, k = 10, isNorm = False, norm_range = [0, 1]):
+    """
+    Split a dataset into k parts randomly.
+    
+        INPUT
+            Xl              Input data lower bounds (rows = objects, columns = features)
+            X_u             Input data upper bounds (rows = objects, columns = features)
+            patClassId      Input data class labels (crisp)
+            k               Number of parts needs to be split
+            isNorm          Do normalization of input training samples or not?
+            norm_range      New ranging of input data after normalization, for example: [0, 1]
+            
+        OUTPUT
+            partitionedA    An numpy array contains k sub-arrays, in which each subarray is Bunch datatype:
+                                + lower:    lower bounds
+                                + upper:    upper bounds
+                                + label:    class labels
+    """
+    if isNorm == True:
+        Xl = normalize(Xl, norm_range)
+        Xu = normalize(Xu, norm_range)
+    
+    numSamples = Xl.shape[0]
+    # generate random permutation
+    pos = np.random.permutation(numSamples)
+    
+    # Bin the positions into numClassifier partitions
+    anchors = np.round(np.linspace(0, numSamples, k + 1))
+    
+    partitionedA = np.empty(k, dtype=Bunch)
+    
+    # divide the training set into numClassifier sub-datasets
+    for i in range(k):
+        partitionedA[i] = Bunch(lower = Xl[pos[anchors[i]:anchors[i + 1]], :], upper = Xu[pos[anchors[i]:anchors[i + 1]], :], label = patClassId[pos[anchors[i]:anchors[i + 1]]])
+        
+    return partitionedA
+    
+  
+def splitDatasetRndClassBasedToKPart(Xl, Xu, patClassId, k= 10, isNorm = False, norm_range = [0, 1]):
+    """
+    Split a dataset into k parts randomly according to each class, where the number of samples of each class is equal among subsets
+    
+        INPUT
+            Xl              Input data lower bounds (rows = objects, columns = features)
+            X_u             Input data upper bounds (rows = objects, columns = features)
+            patClassId      Input data class labels (crisp)
+            k               Number of parts needs to be split
+            isNorm          Do normalization of input training samples or not?
+            norm_range      New ranging of input data after normalization, for example: [0, 1]
+            
+        OUTPUT
+            partitionedA    An numpy array contains k sub-arrays, in which each subarray is Bunch datatype:
+                                + lower:    lower bounds
+                                + upper:    upper bounds
+                                + label:    class labels
+    """
+    if isNorm == True:
+        Xl = normalize(Xl, norm_range)
+        Xu = normalize(Xu, norm_range)
+        
+    classes = np.unique(patClassId)
+    partitionedA = np.empty(k, dtype=Bunch)
+    
+    for cl in range(classes):
+        # Find indices of input samples having the same label with classes[cl]
+        indClass = patClassId == classes[cl]
+        # filter samples having the same class label with classes[cl]
+        Xl_cl = Xl[indClass]
+        Xu_cl = Xu[indClass]
+        pathClass_cl = patClassId[indClass]
+        
+        numSamples = Xl_cl.shape[0]
+        # generate random permutation of positions of selected patterns
+        pos = np.random.permutation(numSamples)
+        
+        # Bin the positions into numClassifier partitions
+        anchors = np.round(np.linspace(0, numSamples, k + 1))
+        
+        for i in range(k):
+            if i == 0:
+                partitionedA[i] = Bunch(lower = Xl_cl[pos[anchors[i]:anchors[i + 1]], :], upper = Xu_cl[pos[anchors[i]:anchors[i + 1]], :], label = pathClass_cl[pos[anchors[i]:anchors[i + 1]]])
+            else:
+                lower_tmp = np.vstack((partitionedA[i].lower, Xl_cl[pos[anchors[i]:anchors[i + 1]], :]))
+                upper_tmp = np.vstack((partitionedA[i].upper, Xu_cl[pos[anchors[i]:anchors[i + 1]], :]))
+                label_tmp = np.vstack((partitionedA[i].label, pathClass_cl[pos[anchors[i]:anchors[i + 1]], :]))
+                partitionedA[i] = Bunch(lower = lower_tmp, upper = upper_tmp, label = label_tmp)
+        
+    return partitionedA
