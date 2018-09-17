@@ -216,7 +216,7 @@ def splitDatasetRndToKPart(Xl, Xu, patClassId, k = 10, isNorm = False, norm_rang
     pos = np.random.permutation(numSamples)
     
     # Bin the positions into numClassifier partitions
-    anchors = np.round(np.linspace(0, numSamples, k + 1))
+    anchors = np.round(np.linspace(0, numSamples, k + 1)).astype(np.int64)
     
     partitionedA = np.empty(k, dtype=Bunch)
     
@@ -252,7 +252,7 @@ def splitDatasetRndClassBasedToKPart(Xl, Xu, patClassId, k= 10, isNorm = False, 
     classes = np.unique(patClassId)
     partitionedA = np.empty(k, dtype=Bunch)
     
-    for cl in range(classes):
+    for cl in range(classes.size):
         # Find indices of input samples having the same label with classes[cl]
         indClass = patClassId == classes[cl]
         # filter samples having the same class label with classes[cl]
@@ -265,15 +265,18 @@ def splitDatasetRndClassBasedToKPart(Xl, Xu, patClassId, k= 10, isNorm = False, 
         pos = np.random.permutation(numSamples)
         
         # Bin the positions into numClassifier partitions
-        anchors = np.round(np.linspace(0, numSamples, k + 1))
+        anchors = np.round(np.linspace(0, numSamples, k + 1)).astype(np.int64)
         
         for i in range(k):
-            if i == 0:
-                partitionedA[i] = Bunch(lower = Xl_cl[pos[anchors[i]:anchors[i + 1]], :], upper = Xu_cl[pos[anchors[i]:anchors[i + 1]], :], label = pathClass_cl[pos[anchors[i]:anchors[i + 1]]])
+            if cl == 0:
+                lower_tmp = Xl_cl[pos[anchors[i]:anchors[i + 1]], :]
+                upper_tmp = Xu_cl[pos[anchors[i]:anchors[i + 1]], :]
+                label_tmp = pathClass_cl[pos[anchors[i]:anchors[i + 1]]]
+                partitionedA[i] = Bunch(lower = lower_tmp, upper = upper_tmp, label = label_tmp)
             else:
                 lower_tmp = np.vstack((partitionedA[i].lower, Xl_cl[pos[anchors[i]:anchors[i + 1]], :]))
                 upper_tmp = np.vstack((partitionedA[i].upper, Xu_cl[pos[anchors[i]:anchors[i + 1]], :]))
-                label_tmp = np.vstack((partitionedA[i].label, pathClass_cl[pos[anchors[i]:anchors[i + 1]], :]))
+                label_tmp = np.append(partitionedA[i].label, pathClass_cl[pos[anchors[i]:anchors[i + 1]]])
                 partitionedA[i] = Bunch(lower = lower_tmp, upper = upper_tmp, label = label_tmp)
         
     return partitionedA
