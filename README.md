@@ -29,13 +29,13 @@ Example:
     
 ![alt text](https://github.com/thanhtung09t2/Hyperbox-classifier/blob/master/Images/Demo.PNG)
     
-If using Spyder to run the source code, let configure Spyder as follows:
+If using Spyder to run the source code, let's configure Spyder as follows:
 
 From <b>Run/Configuration</b> per file or press <b>Ctr+F6</b>, on the open window, select <i>onlinegfmm.py</i> in the field <b>Select a run configuration</b> check on <b>Command line options</b> and input the input parameters such as: <i>1 synthetic_train.dat synthetic_test.dat True 0.6 0.5 1 min True "[0, 1]"</i>.
 
 To the drawing display on the separated window (not inline mode as default), from <b>Tools</b> choose <b>Preferences</b>, and then select <b>IPython console</b>, in tab <b>Graphics</b> let change the value of the field <b>backends</b> to <b>Qt5</b> or <b>Qt4</b>, choose <b>OK</b>. Finally, restart Spyder to update the changes.
 
-<i>Instruction of executing the batch learning versions of GFMM (file: onlinegfmm.py)</i>: </br>
+<i>Instruction of executing the batch learning versions of GFMM (file: accelbatchgfmm.py, batchgfmm_v1.py, batchgfmm_v2.py)</i>: </br>
 <b> Full batch learning</b>: </br>
 
     python batchgfmm_v2.py arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10 arg11 arg12
