@@ -44,8 +44,7 @@ def memberG(X_l, X_u, V, W, g, oper = 'min'):
         b = np.minimum(violMax, violMin).min(axis = 1)
     
     return b
-    
-    
+  
     
 def fofmemb(x, gama):
 
@@ -70,11 +69,73 @@ def fofmemb(x, gama):
     if np.size(gama) > 1: 
         p = x*(np.ones((x.shape[0], 1))*gama)
     else:
-        p = x*gama;
+        p = x*gama
 
     f = (((p >= 0) * (p <= 1)) * p + (p > 1)).astype(float);
     
     return f
+
+def simpsonMembership(Xh, V, W, g):
+    """
+    Function for membership calculation
+    
+        b = simpsonMembership(Xh, V, W, g)
+ 
+   INPUT
+     Xh         Input data (a row vector with columns being features)
+     V          Hyperbox lower bounds
+     W          Hyperbox upper bounds
+     g          User defined sensitivity parameter 
+  
+   OUTPUT
+     b			Degrees of membership of the input pattern
+
+   DESCRIPTION
+    	Function provides the degree of membership b of an input pattern X (in form of upper bound Xu and lower bound Xl)
+        in hyperboxes described by min points V and max points W. This function uses the Simpson's method. The sensitivity parameter g regulates how fast the 
+        membership values decrease when an input pattern is separeted from hyperbox core.
+
+    """
+    yW, xW = W.shape
+    Xh_mat = np.ones((yW, 1)) * Xh
+    zeros_mat = np.zeros((yW, xW))
+    
+    violMax1 = np.maximum(zeros_mat, 1 - np.maximum(zeros_mat, simpsonMin(Xh_mat - W, g)))
+    violMax2 = np.maximum(zeros_mat, 1 - np.maximum(zeros_mat, simpsonMin(V - Xh_mat, g)))
+    
+    violMat = (violMax1 + violMax2)
+    
+    b = np.sum(violMat, axis=1) / (2 * xW)
+    
+    return b
+
+
+def simpsonMin(x, gamma):
+    """
+    Min function for fuzzy membership calculation
+
+        f = simpsonMin(x, gamma)
+  
+   INPUT
+     x			Input data matrix (rows = objects, columns = attributes)
+     gamma	Steepness of membership function
+  
+   OUTPUT
+     f			function's values
+
+   DESCRIPTION
+    	f = gamma * min(1, x)
+        
+    """
+    yX, xX = x.shape
+    
+    if np.size(gamma) > 1: 
+        f = (np.ones((yX, 1)) * gamma) * np.minimum(np.ones((yX, xX)), x)
+    else:
+        f = gamma * np.minimum(np.ones((yX, xX)), x)
+
+    return f
+    
 
 def asym_similarity_one_many(Xl_k, Xu_k, V, W, g = 1, asym_oper = 'max', oper_mem = 'min'):
     """
