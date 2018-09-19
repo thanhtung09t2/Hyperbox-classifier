@@ -9,7 +9,7 @@ GFMM Predictor
 """
 
 import numpy as np
-from membershipcalc import memberG
+from functionhelper.membershipcalc import memberG
 from functionhelper.bunchdatatype import Bunch
 
 def predict(V, W, classId, XlT, XuT, patClassIdTest, gama = 1, oper = 'min'):

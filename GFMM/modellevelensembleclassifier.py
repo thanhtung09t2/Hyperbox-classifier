@@ -33,7 +33,7 @@ from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM
 from functionhelper.prepocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
-from membershipcalc import memberG
+from functionhelper.membershipcalc import memberG
 
 class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
     

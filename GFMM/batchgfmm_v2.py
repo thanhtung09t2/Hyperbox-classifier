@@ -37,7 +37,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 from basebatchlearninggfmm import BaseBatchLearningGFMM
-from membershipcalc import memberG
+from functionhelper.membershipcalc import memberG
 from functionhelper.drawinghelper import drawbox
 from functionhelper.hyperboxadjustment import isOverlap
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean

@@ -27,7 +27,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 
-from membershipcalc import memberG
+from functionhelper.membershipcalc import memberG
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
 from classification import predict
 from functionhelper.drawinghelper import drawbox
