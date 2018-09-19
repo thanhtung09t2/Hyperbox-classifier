@@ -95,7 +95,7 @@ class OnlineAggloGFMM(BaseBatchLearningGFMM):
         self.V = aggloClassifier.V
         self.W = aggloClassifier.W
         self.classId = aggloClassifier.classId
-        print('No. hyperboxes after AGGLO-2 learning:', len(self.classId))
+        print('No. hyperboxes after the agglomerative learning:', len(self.classId))
         
         return self
     
