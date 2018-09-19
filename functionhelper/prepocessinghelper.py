@@ -9,7 +9,7 @@ Preprocessing functions helper
 """
 
 import numpy as np
-from bunchdatatype import Bunch
+from functionhelper.bunchdatatype import Bunch
 
 def normalize(A, new_range):
     """

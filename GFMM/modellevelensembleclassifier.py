@@ -31,8 +31,8 @@ Model level ensemble classifiers of base GFMM-AGGLO-2
 import numpy as np
 from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM
-from prepocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
-from hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
+from functionhelper.prepocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
+from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
 from membershipcalc import memberG
 
 class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):

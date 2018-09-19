@@ -28,10 +28,10 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 from membershipcalc import memberG
-from hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
+from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
 from classification import predict
-from drawinghelper import drawbox
-from prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.drawinghelper import drawbox
+from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
 from basegfmmclassifier import BaseGFMMClassifier
 
 class OnlineGFMM(BaseGFMMClassifier):
@@ -273,7 +273,7 @@ if __name__ == '__main__':
     else:
         norm_range = ast.literal_eval(sys.argv[10])
     
-    print('isDraw = ', isDraw, ' teta = ', teta, ' teta_min = ', teta_min, ' gamma = ', gamma, ' oper = ', oper, ' isNorm = ', isNorm, ' norm_range = ', norm_range)
+    # print('isDraw = ', isDraw, ' teta = ', teta, ' teta_min = ', teta_min, ' gamma = ', gamma, ' oper = ', oper, ' isNorm = ', isNorm, ' norm_range = ', norm_range)
     
     if sys.argv[1] == '1':
         training_file = sys.argv[2]

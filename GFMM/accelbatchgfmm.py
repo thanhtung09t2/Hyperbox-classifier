@@ -36,11 +36,11 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 
-from prepocessinghelper import loadDataset, string_to_boolean
-from membershipcalc import asym_similarity_one_many, memberG
-from drawinghelper import drawbox
-from hyperboxadjustment import isOverlap
+from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.drawinghelper import drawbox
+from functionhelper.hyperboxadjustment import isOverlap
 from basebatchlearninggfmm import BaseBatchLearningGFMM
+from membershipcalc import asym_similarity_one_many, memberG
 
 class AccelBatchGFMM(BaseBatchLearningGFMM):
     

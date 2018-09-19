@@ -11,9 +11,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from classification import predict
-from matrixhelper import delete_const_dims
-from prepocessinghelper import normalize
-from matrixhelper import pca_transform
+from functionhelper.matrixhelper import delete_const_dims, pca_transform
+from functionhelper.prepocessinghelper import normalize
 
 class BaseGFMMClassifier(object):
     

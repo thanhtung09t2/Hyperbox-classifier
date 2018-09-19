@@ -27,7 +27,7 @@ import numpy as np
 from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM
 from classification import predictDecisionLevelEnsemble
-from prepocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
+from functionhelper.prepocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
 
 class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
     
