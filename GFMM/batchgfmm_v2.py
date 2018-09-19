@@ -9,9 +9,9 @@ Batch GFMM classifier (training core) - Slower version as mentioned in the paper
     BatchGFMMV2(gamma, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range, cardin, clusters)
   
     INPUT
-        gamma        Membership function slope (default: 1)
+        gamma       Membership function slope (default: 1)
         teta        Maximum hyperbox size (default: 1)
-        bthres		Similarity threshold for hyperbox concatenetion (default: 0.5)
+        bthres		Similarity threshold for hyperbox concatenation (default: 0.5)
         simil       Similarity measure: 'short', 'long' or 'mid' (default: 'mid')
         sing        Use 'min' or 'max' (default) memberhsip in case of assymetric similarity measure (simil='mid')
         oper        Membership calculation operation: 'min' or 'prod' (default: 'min')
@@ -65,17 +65,20 @@ class BatchGFMMV2(BaseBatchLearningGFMM):
         X_u          Input data upper bounds (rows = objects, columns = features)
         patClassId  Input data class labels (crisp)
         """
-        X_l, X_u = self.dataPreprocessing(X_l, X_u)
+        if self.isNorm == True:
+            X_l, X_u = self.dataPreprocessing(X_l, X_u)
          
         self.V = X_l
         self.W = X_u
         self.classId = patClassId
         
         yX, xX = X_l.shape
-        self.cardin = np.ones(yX)
-        self.clusters = np.empty(yX, dtype=object)
-        for i in range(yX):
-            self.clusters[i] = np.array([i], dtype = np.int32)
+        
+        if len(self.cardin) == 0 or len(self.clusters) == 0:
+            self.cardin = np.ones(yX)
+            self.clusters = np.empty(yX, dtype=object)
+            for i in range(yX):
+                self.clusters[i] = np.array([i], dtype = np.int32)
         
         if self.isDraw:
             mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])

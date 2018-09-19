@@ -57,7 +57,8 @@ class OnlineGFMM(BaseGFMMClassifier):
         """
         print('--Online Learning--')
         
-        X_l, X_u = self.dataPreprocessing(X_l, X_u)
+        if self.isNorm == True:
+            X_l, X_u = self.dataPreprocessing(X_l, X_u)
         
         yX, xX = X_l.shape
         teta = self.teta

@@ -11,14 +11,16 @@ Created on Mon Sep 10 09:42:14 2018
     INPUT:
         gamma           Membership function slope (default: 1)
         teta            Maximum hyperbox size (default: 1)
-        bthres          Similarity threshold for hyperbox concatenetion (default: 0.5)
+        bthres          Similarity threshold for hyperbox concatenation (default: 0.5)
         simil           Similarity measure: 'short', 'long' or 'mid' (default: 'mid')
         sing            Use 'min' or 'max' (default) memberhsip in case of assymetric similarity measure (simil='mid')
         isDraw          Progress plot flag (default: False)
         oper            Membership calculation operation: 'min' or 'prod' (default: 'min')
         isNorm          Do normalization of input training samples or not?
         norm_range      New ranging of input data after normalization, for example: [0, 1]
-  
+        cardin      Input hyperbox cardinalities
+        clusters    Identifiers of objects in each input hyperbox 
+        
     ATTRIBUTES:
         V               Hyperbox lower bounds
         W               Hyperbox upper bounds
@@ -42,12 +44,15 @@ from basebatchlearninggfmm import BaseBatchLearningGFMM
 
 class AccelBatchGFMM(BaseBatchLearningGFMM):
     
-    def __init__(self, gamma = 1, teta = 1, bthres = 0.5, simil = 'mid', sing = 'max', isDraw = False, oper = 'min', isNorm = True, norm_range = [0, 1]):
+    def __init__(self, gamma = 1, teta = 1, bthres = 0.5, simil = 'mid', sing = 'max', isDraw = False, oper = 'min', isNorm = True, norm_range = [0, 1], cardin = np.array([], dtype=np.int64), clusters = np.array([], dtype=object)):
         BaseBatchLearningGFMM.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
         
         self.bthres = bthres
         self.simil = simil
         self.sing = sing
+        
+        self.cardin = cardin
+        self.clusters = clusters
     
     
     def fit(self, X_l, X_u, patClassId):  
@@ -56,18 +61,20 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
         Xu          Input data upper bounds (rows = objects, columns = features)
         patClassId  Input data class labels (crisp)
         """
-      
-        X_l, X_u = self.dataPreprocessing(X_l, X_u)
+        if self.isNorm == True:
+            X_l, X_u = self.dataPreprocessing(X_l, X_u)
          
         self.V = X_l
         self.W = X_u
         self.classId = patClassId
         
         yX, xX = X_l.shape
-        self.cardin = np.ones(yX)
-        self.clusters = np.empty(yX, dtype=object)
-        for i in range(yX):
-            self.clusters[i] = np.array([i], dtype = np.int32)
+        
+        if len(self.cardin) == 0 or len(self.clusters) == 0:
+            self.cardin = np.ones(yX)
+            self.clusters = np.empty(yX, dtype=object)
+            for i in range(yX):
+                self.clusters[i] = np.array([i], dtype = np.int32)
         
         if self.isDraw:
             mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
