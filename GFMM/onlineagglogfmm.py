@@ -88,7 +88,7 @@ class OnlineAggloGFMM(BaseBatchLearningGFMM):
         elif typeOfAgglo == 2:
             aggloClassifier = BatchGFMMV1(self.gamma, self.teta_agglo, bthres = self.bthres, simil = self.simil, sing = self.sing, isDraw = self.isDraw, oper = self.oper, isNorm = False)
         else:
-            aggloClassifier = BatchGFMMV1(self.gamma, self.teta_agglo, bthres = self.bthres, simil = self.simil, sing = self.sing, isDraw = self.isDraw, oper = self.oper, isNorm = False)
+            aggloClassifier = BatchGFMMV2(self.gamma, self.teta_agglo, bthres = self.bthres, simil = self.simil, sing = self.sing, isDraw = self.isDraw, oper = self.oper, isNorm = False)
             
         aggloClassifier.fit(self.V, self.W, self.classId)
         
