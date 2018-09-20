@@ -27,6 +27,8 @@ Model level ensemble classifiers of base GFMM-AGGLO-2
         clusters        Identifiers of input objects in each hyperbox (indexes of training samples covered by corresponding hyperboxes)
 
 """
+import sys, os
+sys.path.insert(0, os.path.pardir)
 
 import numpy as np
 from basebatchlearninggfmm import BaseBatchLearningGFMM

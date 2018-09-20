@@ -23,6 +23,9 @@ Decision level ensemble classifiers of base GFMM-AGGLO-2
         baseClassifiers     An array of base GFMM AGLLO-2 classifiers
         numHyperboxes       The number of hyperboxes in all base classifiers
 """
+import sys, os
+sys.path.insert(0, os.path.pardir)
+
 import numpy as np
 from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM

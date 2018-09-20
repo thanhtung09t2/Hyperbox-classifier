@@ -30,7 +30,9 @@ Batch GFMM classifier (training core) - Slower version as mentioned in the paper
 
 """
 
-import sys
+import sys, os
+sys.path.insert(0, os.path.pardir)
+
 import ast
 import numpy as np
 import matplotlib

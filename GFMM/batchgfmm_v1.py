@@ -31,7 +31,9 @@ Batch GFMM classifier (training core) - Faster version by only computing similar
 
 """
 
-import sys
+import sys, os
+sys.path.insert(0, os.path.pardir)
+
 import ast
 import numpy as np
 import matplotlib

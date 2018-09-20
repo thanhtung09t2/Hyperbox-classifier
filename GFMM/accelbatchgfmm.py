@@ -30,7 +30,9 @@ Created on Mon Sep 10 09:42:14 2018
 
 """
 
-import sys
+import sys, os
+sys.path.insert(0, os.path.pardir)
+
 import ast
 import numpy as np
 import matplotlib

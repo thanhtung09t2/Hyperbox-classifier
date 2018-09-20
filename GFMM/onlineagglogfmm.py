@@ -32,7 +32,9 @@ Simple combination of online learning and agglomerative learning gfmm
 
 """
 
-import sys
+import sys, os
+sys.path.insert(0, os.path.pardir)
+
 import ast
 import numpy as np
 import matplotlib
