@@ -1,6 +1,12 @@
 # Hyperbox-classifier
 <b>Implementation of classifiers based on hyper-box representation</b>
 
+Before running the python files in this project, we need to install packages first as follows:
+
+Open command line in Windows and navigate to the Hyperbox-classifier folder, and then type the following command:
+
+    python setup.py install
+
 <i>Instruction of executing the online version of GFMM (file: onlinegfmm.py)</i>:
 
     python onlinegfmm.py arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 arg9 arg10
