@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Sep 19 14:00:25 2018
+Created on Fri Sep 21 21:33:43 2018
 
 @author: Thanh Tung Khuat
 
-Implementation of the original fuzzy min-max neural network
+Implementation of the enhanced fuzzy min-max neural network with improved expansion and contraction processes
 
-            FMNNClassification(gamma, teta, isDraw, isNorm, norm_range)
+            EFMNNClassification(gamma, teta, isDraw, isNorm, norm_range)
 
     INPUT
-     V              Hyperbox lower bounds for the model to be updated using new data
-     W              Hyperbox upper bounds for the model to be updated using new data
-     classId        Hyperbox class labels (crisp)  for the model to be updated using new data
-     gamma          Membership function slope (default: 1), datatype: array or scalar
-     teta           Maximum hyperbox size (default: 1)
-     isDraw         Progress plot flag (default: False)
-     isNorm         Do normalization of input training samples or not?
-     norm_range     New ranging of input data after normalization
-
+         V              Hyperbox lower bounds for the model to be updated using new data
+         W              Hyperbox upper bounds for the model to be updated using new data
+         classId        Hyperbox class labels (crisp)  for the model to be updated using new data
+         gamma          Membership function slope (default: 1), datatype: array or scalar
+         teta           Maximum hyperbox size (default: 1)
+         isDraw         Progress plot flag (default: False)
+         isNorm         Do normalization of input training samples or not?
+         norm_range     New ranging of input data after normalization
 """
+
 import sys, os
 sys.path.insert(0, os.path.pardir) 
 
@@ -28,12 +28,12 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 from functionhelper.membershipcalc import simpsonMembership
-from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
+from functionhelper.hyperboxadjustment import improvedHyperboxOverlapTest, improvedHyperboxContraction
 from functionhelper.drawinghelper import drawbox
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
 from functionhelper.basefmnnclassifier import BaseFMNNClassifier
 
-class FMNNClassification(BaseFMNNClassifier):
+class EFMNNClassification(BaseFMNNClassifier):
     
     def __init__(self, gamma = 1, teta = 1, isDraw = False, isNorm = False, norm_range = [0, 1], V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int16)):
         BaseFMNNClassifier.__init__(self, gamma, teta, isDraw, isNorm, norm_range)
@@ -51,7 +51,7 @@ class FMNNClassification(BaseFMNNClassifier):
          patClassId     Input data class labels (crisp). patClassId[i] = 0 corresponds to an unlabeled item
         
         """
-        print('--Online Learning for Simpson''s FMNN--')
+        print('--Online Learning for EFMNN - 9 cases for expansion and contraction processes--')
         
         if self.isNorm == True:
             Xh = self.dataPreprocessing(Xh)
@@ -65,7 +65,7 @@ class FMNNClassification(BaseFMNNClassifier):
         listInputSamplePoints = list();
         
         if self.isDraw:
-            drawing_canvas = self.initializeCanvasGraph("FMNN - Simpson's fuzzy min-max neural network", xX)
+            drawing_canvas = self.initializeCanvasGraph("EFMNN - Enhanced fuzzy min-max neural network - 9 cases for the hyperbox expansion and contraction", xX)
             
         # for each input sample
         for i in range(yX):
@@ -118,7 +118,7 @@ class FMNNClassification(BaseFMNNClassifier):
                     adjust = False
                     for j in index:
                         # test violation of max hyperbox size and class labels
-                        if (np.maximum(self.W[j], Xh[i]) - np.minimum(self.V[j], Xh[i])).sum() <= self.teta * xX and classOfX == self.classId[j]:
+                        if ((np.maximum(self.W[j], Xh[i]) - np.minimum(self.V[j], Xh[i])) <= self.teta).all() == True and classOfX == self.classId[j]:
                             # adjust the j-th hyperbox
                             self.V[j] = np.minimum(self.V[j], Xh[i])
                             self.W[j] = np.maximum(self.W[j], Xh[i])
@@ -161,10 +161,10 @@ class FMNNClassification(BaseFMNNClassifier):
                     elif self.V.shape[0] > 1:
                         for ii in range(self.V.shape[0]):
                             if ii != indOfWinner:
-                                caseDim = hyperboxOverlapTest(self.V, self.W, indOfWinner, ii)		# overlap test
+                                caseDim = improvedHyperboxOverlapTest(self.V, self.W, indOfWinner, ii, Xh[i])		# overlap test
                                 
                                 if caseDim.size > 0 and self.classId[ii] != self.classId[indOfWinner]:
-                                    self.V, self.W = hyperboxContraction(self.V, self.W, caseDim, ii, indOfWinner)
+                                    self.V, self.W = improvedHyperboxContraction(self.V, self.W, caseDim, ii, indOfWinner)
                                     if self.isDraw:
                                         # Handle graph drawing
                                         boxii_color = boxwin_color = 'k'
@@ -246,7 +246,7 @@ if __name__ == '__main__':
         percent_Training = float(sys.argv[3])
         Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(dataset_file, percent_Training, False)
         
-    classifier = FMNNClassification(gamma, teta, isDraw, isNorm, norm_range)
+    classifier = EFMNNClassification(gamma, teta, isDraw, isNorm, norm_range)
     classifier.fit(Xtr, patClassIdTr)
     
     # Testing
