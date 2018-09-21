@@ -290,16 +290,13 @@ if __name__ == '__main__':
         # Read testing file
         X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
     
-        classifier = OnlineGFMM(gamma, teta, teta_min, isDraw, oper, isNorm, norm_range)
-        classifier.fit(Xtr, Xtr, patClassIdTr)
-    
     else:
         dataset_file = sys.argv[2]
         percent_Training = float(sys.argv[3])
         Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(dataset_file, percent_Training, False)
         
-        classifier = OnlineGFMM(gamma, teta, teta_min, isDraw, oper, isNorm, norm_range)
-        classifier.fit(Xtr, Xtr, patClassIdTr)
+    classifier = OnlineGFMM(gamma, teta, teta_min, isDraw, oper, isNorm, norm_range)
+    classifier.fit(Xtr, Xtr, patClassIdTr)
     
     # Testing
     print("-- Testing --")
