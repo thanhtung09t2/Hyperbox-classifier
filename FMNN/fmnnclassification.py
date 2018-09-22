@@ -62,7 +62,6 @@ class FMNNClassification(BaseFMNNClassifier):
         mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
         
         listLines = list()
-        listInputSamplePoints = list();
         
         if self.isDraw:
             drawing_canvas = self.initializeCanvasGraph("FMNN - Simpson's fuzzy min-max neural network", xX)
@@ -72,10 +71,6 @@ class FMNNClassification(BaseFMNNClassifier):
             classOfX = patClassId[i]
             # draw input samples
             if self.isDraw:
-                if i == 0 and len(listInputSamplePoints) > 0:
-                    # reset input point drawing
-                    for point in listInputSamplePoints:
-                        point.remove()
                 
                 color_ = 'k'
                 if classOfX < len(mark_col):
@@ -86,11 +81,10 @@ class FMNNClassification(BaseFMNNClassifier):
                     marker_ = mark[classOfX]
                     
                 if xX == 2:
-                    inputPoint = drawing_canvas.plot(Xh[i, 0], Xh[i, 1], color = color_, marker=marker_)
+                    drawing_canvas.plot(Xh[i, 0], Xh[i, 1], color = color_, marker=marker_)
                 else:
-                    inputPoint = drawing_canvas.plot(Xh[i, 0], Xh[i, 1], Xh[i, 2], color = color_, marker=marker_)
+                    drawing_canvas.plot(Xh[i, 0], Xh[i, 1], Xh[i, 2], color = color_, marker=marker_)
                 
-                listInputSamplePoints.append(inputPoint[0])
                 self.delay()
                 
             if self.V.size == 0:   # no model provided - starting from scratch
@@ -109,16 +103,25 @@ class FMNNClassification(BaseFMNNClassifier):
                     self.delay()
 
             else:
-                b = simpsonMembership(Xh[i], self.V, self.W, self.gamma)
-                    
-                index = np.argsort(b)[::-1]
-                bSort = b[index];
+                idSameClassOfX = np.where(self.classId == classOfX)[0]
+                # Find all hyperboxes same class with indexOfX
+                V1 = self.V[idSameClassOfX]
                 
-                if bSort[0] != 1 or classOfX != self.classId[index[0]]:
-                    adjust = False
-                    for j in index:
+                if len(V1) > 0:
+                    W1 = self.W[idSameClassOfX]
+                    
+                    b = simpsonMembership(Xh[i], V1, W1, self.gamma)
+                    
+                    indexSort = np.argsort(b)[::-1]
+                    
+                    # store the index of the winner hyperbox in the list of all hyperboxes of all classes
+                    j = idSameClassOfX[indexSort[0]]
+                
+                    if b[indexSort[0]] != 1:
+                        adjust = False
+                
                         # test violation of max hyperbox size and class labels
-                        if (np.maximum(self.W[j], Xh[i]) - np.minimum(self.V[j], Xh[i])).sum() <= self.teta * xX and classOfX == self.classId[j]:
+                        if (np.maximum(self.W[j], Xh[i]) - np.minimum(self.V[j], Xh[i])).sum() <= self.teta * xX:
                             # adjust the j-th hyperbox
                             self.V[j] = np.minimum(self.V[j], Xh[i])
                             self.W[j] = np.maximum(self.W[j], Xh[i])
@@ -139,51 +142,66 @@ class FMNNClassification(BaseFMNNClassifier):
                                 hyperbox = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)                                 
                                 listLines[j] = hyperbox[0]
                                 self.delay()
+                                    
                                 
-                            break
+                        # if i-th sample did not fit into any existing box, create a new one
+                        if not adjust:
+                            self.V = np.vstack((self.V, Xh[i]))
+                            self.W = np.vstack((self.W, Xh[i]))
+                            self.classId = np.append(self.classId, classOfX)
+    
+                            if self.isDraw:
+                                # handle drawing graph
+                                box_color = 'k'
+                                if self.classId[-1] < len(mark_col):
+                                    box_color = mark_col[self.classId[-1]]
+                                    
+                                hyperbox = drawbox(np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
+                                listLines.append(hyperbox[0])
+                                self.delay()
+                                
+                        elif self.V.shape[0] > 1:
+                            for ii in range(self.V.shape[0]):
+                                if ii != indOfWinner:
+                                    caseDim = hyperboxOverlapTest(self.V, self.W, indOfWinner, ii)		# overlap test
+                                    
+                                    if caseDim.size > 0 and self.classId[ii] != self.classId[indOfWinner]:
+                                        self.V, self.W = hyperboxContraction(self.V, self.W, caseDim, ii, indOfWinner)
+                                        if self.isDraw:
+                                            # Handle graph drawing
+                                            boxii_color = boxwin_color = 'k'
+                                            if self.classId[ii] < len(mark_col):
+                                                boxii_color = mark_col[self.classId[ii]]
+                                            
+                                            if self.classId[indOfWinner] < len(mark_col):
+                                                boxwin_color = mark_col[self.classId[indOfWinner]]
+                                            
+                                            try:
+                                                listLines[ii].remove()                                           
+                                                listLines[indOfWinner].remove()
+                                            except:
+                                                pass
+                                            
+                                            hyperboxes = drawbox(self.V[[ii, indOfWinner], 0:np.minimum(xX, 3)], self.W[[ii, indOfWinner], 0:np.minimum(xX, 3)], drawing_canvas, [boxii_color, boxwin_color])                                          
+                                            listLines[ii] = hyperboxes[0]
+                                            listLines[indOfWinner] = hyperboxes[1]                                      
+                                            self.delay()
+                                            
+                else:
+                    # create a new hyperbox
+                    self.V = np.vstack((self.V, Xh[i]))
+                    self.W = np.vstack((self.W, Xh[i]))
+                    self.classId = np.append(self.classId, classOfX)
+    
+                    if self.isDraw:
+                        # handle drawing graph
+                        box_color = 'k'
+                        if self.classId[-1] < len(mark_col):
+                            box_color = mark_col[self.classId[-1]]
                             
-                    # if i-th sample did not fit into any existing box, create a new one
-                    if not adjust:
-                        self.V = np.vstack((self.V, Xh[i]))
-                        self.W = np.vstack((self.W, Xh[i]))
-                        self.classId = np.append(self.classId, classOfX)
-
-                        if self.isDraw:
-                            # handle drawing graph
-                            box_color = 'k'
-                            if self.classId[-1] < len(mark_col):
-                                box_color = mark_col[self.classId[-1]]
-                                
                             hyperbox = drawbox(np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
                             listLines.append(hyperbox[0])
                             self.delay()
-                            
-                    elif self.V.shape[0] > 1:
-                        for ii in range(self.V.shape[0]):
-                            if ii != indOfWinner:
-                                caseDim = hyperboxOverlapTest(self.V, self.W, indOfWinner, ii)		# overlap test
-                                
-                                if caseDim.size > 0 and self.classId[ii] != self.classId[indOfWinner]:
-                                    self.V, self.W = hyperboxContraction(self.V, self.W, caseDim, ii, indOfWinner)
-                                    if self.isDraw:
-                                        # Handle graph drawing
-                                        boxii_color = boxwin_color = 'k'
-                                        if self.classId[ii] < len(mark_col):
-                                            boxii_color = mark_col[self.classId[ii]]
-                                        
-                                        if self.classId[indOfWinner] < len(mark_col):
-                                            boxwin_color = mark_col[self.classId[indOfWinner]]
-                                        
-                                        try:
-                                            listLines[ii].remove()                                           
-                                            listLines[indOfWinner].remove()
-                                        except:
-                                            pass
-                                        
-                                        hyperboxes = drawbox(self.V[[ii, indOfWinner], 0:np.minimum(xX, 3)], self.W[[ii, indOfWinner], 0:np.minimum(xX, 3)], drawing_canvas, [boxii_color, boxwin_color])                                          
-                                        listLines[ii] = hyperboxes[0]
-                                        listLines[indOfWinner] = hyperboxes[1]                                      
-                                        self.delay()
                             
            						
         return self
