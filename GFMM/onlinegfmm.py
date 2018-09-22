@@ -101,7 +101,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                         if xX == 2:
                             inputPoint = drawing_canvas.plot(X_l[i, 0], X_l[i, 1], color = color_, marker=marker_)
                         else:
-                            inputPoint = drawing_canvas.plot(X_l[i, 0], X_l[i, 1], X_l[i, 2], color = color_, marker=marker_)
+                            inputPoint = drawing_canvas.plot([X_l[i, 0]], [X_l[i, 1]], [X_l[i, 2]], color = color_, marker=marker_)
                         
                         #listInputSamplePoints.append(inputPoint)
                     else:

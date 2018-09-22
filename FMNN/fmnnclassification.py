@@ -83,7 +83,7 @@ class FMNNClassification(BaseFMNNClassifier):
                 if xX == 2:
                     drawing_canvas.plot(Xh[i, 0], Xh[i, 1], color = color_, marker=marker_)
                 else:
-                    drawing_canvas.plot(Xh[i, 0], Xh[i, 1], Xh[i, 2], color = color_, marker=marker_)
+                    drawing_canvas.plot([Xh[i, 0]], [Xh[i, 1]], [Xh[i, 2]], color = color_, marker=marker_)
                 
                 self.delay()
                 

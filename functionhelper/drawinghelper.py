@@ -45,7 +45,7 @@ def drawbox(low, up, plt, color = ['k']):
                 han[i], = plt.plot([low[i, 0], low[i, 0], up[i, 0], up[i, 0], low[i, 0]], [low[i, 1], up[i, 1], up[i, 1], low[i, 1], low[i, 1]], color=selected_color)
         else:
             if low[i, 0] == up[i, 0] and low[i, 1] == up[i, 1] and low[i, 2] == up[i, 2]:
-                han[i], = plt.plot(low[i, 0], low[i, 1], low[i, 2], color=selected_color, marker='+')
+                han[i], = plt.plot([low[i, 0]], [low[i, 1]], [low[i, 2]], color=selected_color, marker='+')
             else:
                 han[i], = plt.plot([low[i, 0], low[i, 0], up[i, 0], up[i, 0], low[i, 0], low[i, 0], low[i, 0], low[i, 0], up[i, 0], up[i, 0], low[i, 0], up[i, 0], up[i, 0], up[i, 0], up[i, 0], low[i, 0], low[i, 0]], \
                                    [low[i, 1], up[i, 1], up[i, 1], low[i, 1], low[i, 1], low[i, 1], low[i, 1], up[i, 1], up[i, 1], low[i, 1], low[i, 1], low[i, 1], low[i, 1], up[i, 1], up[i, 1], up[i, 1], up[i, 1]], \
