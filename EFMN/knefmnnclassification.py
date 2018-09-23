@@ -65,7 +65,9 @@ class KNEFMNNClassification(BaseFMNNClassifier):
         
         if self.isDraw:
             drawing_canvas = self.initializeCanvasGraph("KNEFMNN - K-Nearest hyperbox selection Enhanced fuzzy min-max neural network", xX)
-            
+        
+        print('Initial K =', K)
+        
         # for each input sample
         for i in range(yX):
             classOfX = patClassId[i]
@@ -115,16 +117,14 @@ class KNEFMNNClassification(BaseFMNNClassifier):
                     indexSort = np.argsort(b)[::-1]
                     
                     if K > len(indexSort):
-                        K = len(indexSort)
+                        numSelectedSamples = len(indexSort)
+                    else:
+                        numSelectedSamples = K
                     
                     isHaveWinner = False
-                    
-                    for kk in range(K):
+                    for kk in range(numSelectedSamples):
                         # store the index of the winner hyperbox in the list of all hyperboxes of all classes
                         j = idSameClassOfX[indexSort[kk]]
-                        
-#                        if kk > 0:
-#                            print("Choose the next hyperbox")
                     
                         if b[indexSort[kk]] != 1:                   
                             # test violation of max hyperbox size and class labels
@@ -179,7 +179,7 @@ class KNEFMNNClassification(BaseFMNNClassifier):
                                                     listLines[ii] = hyperboxes[0]
                                                     listLines[indOfWinner] = hyperboxes[1]                                      
                                                     self.delay()
-                                                
+                                        
                                 break # kk is the winner hyperbox
                         else:
                             isHaveWinner = True
@@ -201,7 +201,6 @@ class KNEFMNNClassification(BaseFMNNClassifier):
                             hyperbox = drawbox(np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
                             listLines.append(hyperbox[0])
                             self.delay()
-                            
                         
                                             
                 else:
