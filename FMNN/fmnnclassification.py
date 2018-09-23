@@ -138,8 +138,8 @@ class FMNNClassification(BaseFMNNClassifier):
                                     listLines[j].remove()
                                 except:
                                     pass
-                                
-                                hyperbox = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)                                 
+                                    
+                                hyperbox = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
                                 listLines[j] = hyperbox[0]
                                 self.delay()
                                     
@@ -199,9 +199,9 @@ class FMNNClassification(BaseFMNNClassifier):
                         if self.classId[-1] < len(mark_col):
                             box_color = mark_col[self.classId[-1]]
                             
-                            hyperbox = drawbox(np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
-                            listLines.append(hyperbox[0])
-                            self.delay()
+                        hyperbox = drawbox(np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
+                        listLines.append(hyperbox[0])
+                        self.delay()
                             
            						
         return self
@@ -266,7 +266,7 @@ if __name__ == '__main__':
         
     classifier = FMNNClassification(gamma, teta, isDraw, isNorm, norm_range)
     classifier.fit(Xtr, patClassIdTr)
-    
+    print('Final hyperbox No =', len(classifier.classId))
     # Testing
     print("-- Testing --")
     result = classifier.predict(Xtest, patClassIdTest)

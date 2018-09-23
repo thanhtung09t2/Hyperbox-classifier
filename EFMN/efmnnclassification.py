@@ -199,9 +199,9 @@ class EFMNNClassification(BaseFMNNClassifier):
                         if self.classId[-1] < len(mark_col):
                             box_color = mark_col[self.classId[-1]]
                             
-                            hyperbox = drawbox(np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
-                            listLines.append(hyperbox[0])
-                            self.delay()
+                        hyperbox = drawbox(np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
+                        listLines.append(hyperbox[0])
+                        self.delay()
                             
            						
         return self

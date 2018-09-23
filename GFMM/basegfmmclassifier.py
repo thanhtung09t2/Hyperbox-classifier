@@ -171,6 +171,7 @@ class BaseGFMMClassifier(object):
                           + out              Soft class memberships
                           + mem              Hyperbox memberships
         """
+        Xl_Test, Xu_Test = delete_const_dims(Xl_Test, Xu_Test)
         # Normalize testing dataset if training datasets were normalized
         if len(self.mins) > 0:
             noSamples = Xl_Test.shape[0]
@@ -178,8 +179,19 @@ class BaseGFMMClassifier(object):
             Xu_Test = self.loLim + (self.hiLim - self.loLim) * (Xu_Test - np.ones((noSamples, 1)) * self.mins) / (np.ones((noSamples, 1)) * (self.maxs - self.mins))
             
             if Xl_Test.min() < self.loLim or Xu_Test.min() < self.loLim or Xl_Test.max() > self.hiLim or Xu_Test.max() > self.hiLim:
-                print('Test sample falls ousitde', self.loLim, '-', self.hiLim, 'interval')
-                return
+                print('Test sample falls outside', self.loLim, '-', self.hiLim, 'interval')
+                print('Number of original samples = ', noSamples)
+                
+                # only keep samples within the interval loLim-hiLim
+                indXl_good = np.where((Xl_Test >= self.loLim).all(axis = 1) & (Xl_Test <= self.hiLim).all(axis = 1))[0]
+                indXu_good = np.where((Xu_Test >= self.loLim).all(axis = 1) & (Xu_Test <= self.hiLim).all(axis = 1))[0]
+                indKeep = np.intersect1d(indXl_good, indXu_good)
+                
+                Xl_Test = Xl_Test[indKeep, :]
+                Xu_Test = Xu_Test[indKeep, :]
+                
+                print('Number of kept samples =', Xl_Test.shape[0])
+                #return
             
         # do classification
         result = predict(self.V, self.W, self.classId, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)

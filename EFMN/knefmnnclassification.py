@@ -83,7 +83,7 @@ class KNEFMNNClassification(BaseFMNNClassifier):
                 if xX == 2:
                     drawing_canvas.plot(Xh[i, 0], Xh[i, 1], color = color_, marker=marker_)
                 else:
-                    drawing_canvas.plot([Xh[i, 0]], [Xh[i, 1]], [Xh[i, 2]], color = color_, marker=marker_)
+                    drawing_canvas.plot([Xh[i, 0]], [Xh[i, 1]], [Xh[i, 2]])#, color = color_, marker=marker_)
                 
                 self.delay()
                 
@@ -114,13 +114,17 @@ class KNEFMNNClassification(BaseFMNNClassifier):
                     
                     indexSort = np.argsort(b)[::-1]
                     
-                    K = np.minimum(K, len(indexSort))
+                    if K > len(indexSort):
+                        K = len(indexSort)
                     
                     isHaveWinner = False
                     
                     for kk in range(K):
                         # store the index of the winner hyperbox in the list of all hyperboxes of all classes
                         j = idSameClassOfX[indexSort[kk]]
+                        
+#                        if kk > 0:
+#                            print("Choose the next hyperbox")
                     
                         if b[indexSort[kk]] != 1:                   
                             # test violation of max hyperbox size and class labels
@@ -140,10 +144,12 @@ class KNEFMNNClassification(BaseFMNNClassifier):
                                     try:
                                         listLines[j].remove()
                                     except:
+                                        print("Error remove box")
                                         pass
                                     
-                                    hyperbox = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)                                 
+                                    hyperbox = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
                                     listLines[j] = hyperbox[0]
+                                       
                                     self.delay()
                                 
                                 if self.V.shape[0] > 1:
@@ -210,9 +216,9 @@ class KNEFMNNClassification(BaseFMNNClassifier):
                         if self.classId[-1] < len(mark_col):
                             box_color = mark_col[self.classId[-1]]
                             
-                            hyperbox = drawbox(np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
-                            listLines.append(hyperbox[0])
-                            self.delay()
+                        hyperbox = drawbox(np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), np.asmatrix(Xh[i, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)
+                        listLines.append(hyperbox[0])
+                        self.delay()
                             
            						
         return self
