@@ -109,11 +109,11 @@ class Repeat2FoldModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
         W_val = X_val.upper
         classId_val = X_val.label
         
-        delta_thres = (self.bthres - self.bthres_min) / self.numClassifier
         bthres = self.bthres
         self.numHyperboxes = 0
         
         N = int(self.numClassifier / 2) + 1
+        delta_thres = (self.bthres - self.bthres_min) / N
         
         minEr_Tr = 2
         minEr_Val = 2
