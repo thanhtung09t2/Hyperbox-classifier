@@ -6,10 +6,11 @@ Created on Tue Sep 18 15:41:56 2018
 
 Model level ensemble classifiers of base GFMM-AGGLO-2
 
-            ModelLevelEnsembleClassifier(numClassifier, gamma, teta, bthres, simil, sing, oper, isNorm, norm_range)
+            ModelLevelEnsembleClassifier(numClassifier, numFold, gamma, teta, bthres, simil, sing, oper, isNorm, norm_range)
 
     INPUT
         numClassifier       The number of classifiers
+        numFold             The number of folds for cross-validation
         gamma               Membership function slope (default: 1)
         teta                Maximum hyperbox size (default: 1)
         bthres              Similarity threshold for hyperbox concatenetion (default: 0.5)
@@ -36,8 +37,6 @@ from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM
 from classification import predict
 from functionhelper.prepocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
-from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
-from functionhelper.membershipcalc import memberG
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
 
 class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
@@ -109,48 +108,7 @@ class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
         self.numHyperboxes = len(self.classId)
         
         return self
-    
-    
-    def overlapResolve(self):
-        """
-        Resolve overlapping hyperboxes with bounders contained in self.V and self.W
-        """
-        yX = self.V.shape[0]
-        # Contraction process does not cause overlappling regions => No need to check from the first hyperbox for each hyperbox
-        for i in np.arange(yX - 1):
-            j = i + 1
-            while j < yX:
-                caseDim = hyperboxOverlapTest(self.V, self.W, i, j)
-                if len(caseDim) > 0 and self.classId[i] != self.classId[j]:
-                    self.V, self.W = hyperboxContraction(self.V, self.W, caseDim, j, i)
-                
-                j = j + 1
-                
-        return (self.V, self.W)
-                
-      
-    def removeContainedHyperboxes(self):
-        """
-        Remove all hyperboxes contained in other hyperboxes
-        """
-        numBoxes = len(self.classId)
-        indtokeep = np.ones(numBoxes, dtype=np.bool)
-        
-        for i in range(numBoxes):
-            memValue = memberG(self.V[i], self.W[i], self.V, self.W, self.gamma, self.oper)
-            isInclude = (self.classId[memValue == 1] == self.classId[i]).all()
-            
-            # memValue always has one value being 1 because of self-containing
-            if np.sum(memValue == 1) > 1 and isInclude == True:
-                indtokeep[i] = False
-                
-        self.V = self.V[indtokeep, :]
-        self.W = self.W[indtokeep, :]
-        self.classId = self.classId[indtokeep]
-        self.clusters = self.clusters[indtokeep]
-        self.cardin = self.cardin[indtokeep]
-        
-        
+              
     
     def training(self, partitionedXtr):
         """

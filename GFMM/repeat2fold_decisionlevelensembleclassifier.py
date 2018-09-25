@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Sep 17 14:32:52 2018
+Created on Tue Sep 25 10:44:45 2018
 
 @author: Thanh Tung Khuat
 
-Decision level ensemble classifiers of base GFMM-AGGLO-2
+    Repeated 2-fold cross-validation Decision level ensemble classifiers of base GFMM-AGGLO-2
 
-            DecisionLevelEnsembleClassifier(numClassifier, numFold, gamma, teta, bthres, simil, sing, oper, isNorm, norm_range)
+            Repeat2FoldDecisionLevelEnsembleClassifier(numClassifier, gamma, teta, bthres, simil, sing, oper, isNorm, norm_range)
 
     INPUT
-        numClassifier       The number of classifiers
-        numFold             The number of folds for cross-validation
+        numClassifier       The number of classifiers (default: 5)
         gamma               Membership function slope (default: 1)
         teta                Maximum hyperbox size (default: 1)
-        bthres              Similarity threshold for hyperbox concatenetion (default: 0.5)
+        bthres              Inital Similarity threshold for hyperbox concatenetion (default: 0.95)
+        bthres_min          The minimum value of the similarity threshold (default: 0.05)
         simil               Similarity measure: 'short', 'long' or 'mid' (default: 'mid')
         sing                Use 'min' or 'max' (default) memberhsip in case of assymetric similarity measure (simil='mid')
         oper                Membership calculation operation: 'min' or 'prod' (default: 'min')
@@ -23,6 +23,7 @@ Decision level ensemble classifiers of base GFMM-AGGLO-2
     ATTRIBUTES
         baseClassifiers     An array of base GFMM AGLLO-2 classifiers
         numHyperboxes       The number of hyperboxes in all base classifiers
+
 """
 import sys, os
 sys.path.insert(0, os.path.pardir)
@@ -33,16 +34,16 @@ from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM
 from classification import predictDecisionLevelEnsemble
 from functionhelper.matrixhelper import delete_const_dims
-from functionhelper.prepocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
+from functionhelper.prepocessinghelper import splitDatasetRndClassBasedTo2Part, splitDatasetRndTo2Part
 from classification import predict
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
 
-class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
+class Repeat2FoldDecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
     
-    def __init__(self, numClassifier = 10, numFold = 10, gamma = 1, teta = 1, bthres = 0.5, simil = 'mid', sing = 'max', oper = 'min', isNorm = True, norm_range = [0, 1]):
+    def __init__(self, numClassifier = 5, gamma = 1, teta = 1, bthres = 0.95, bthres_min = 0.05, simil = 'mid', sing = 'max', oper = 'min', isNorm = True, norm_range = [0, 1]):
         BaseBatchLearningGFMM.__init__(self, gamma, teta, False, oper, isNorm, norm_range)
         
-        self.numFold = numFold
+        self.bthres_min = bthres_min
         self.numClassifier = numClassifier
         self.bthres = bthres
         self.simil = simil
@@ -51,7 +52,7 @@ class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
         self.numHyperboxes = 0
     
     
-    def fit(self, X_l, X_u, patClassId, typeOfSplitting = 0):
+    def fit(self, X_l, X_u, patClassId, typeOfSplitting = 0, training_rate = 0.5):
         """
         Training the ensemble model at decision level. This method is used when the input data are not partitioned into k parts
         
@@ -62,64 +63,78 @@ class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
                 typeOfSplitting     The way of splitting datasets
                                         + 1: random split on whole dataset - do not care the classes
                                         + otherwise: random split according to each class label
+                training_rate       The proportion of training data in whole dataset (the remaining data are validation data)
         """
         X_l, X_u = self.dataPreprocessing(X_l, X_u)
-        self.numHyperboxes = 0
     
-        for i in range(self.numClassifier):
-            if typeOfSplitting == 1:
-                partitionedXtr = splitDatasetRndToKPart(X_l, X_u, patClassId, self.numFold)
-            else:
-                partitionedXtr = splitDatasetRndClassBasedToKPart(X_l, X_u, patClassId, self.numFold)
-                
-            self.baseClassifiers[i] = self.training(partitionedXtr)
-            self.numHyperboxes = self.numHyperboxes + len(self.baseClassifiers[i].classId)
+        if typeOfSplitting == 1:
+            (X_tr, X_val) = splitDatasetRndTo2Part(X_l, X_u, patClassId, training_rate)
+        else:
+            (X_tr, X_val) = splitDatasetRndClassBasedTo2Part(X_l, X_u, patClassId, training_rate)
             
+        self.training(X_tr, X_val)
+        
         return self
     
     
-    def training(self, partitionedXtr):
+    def training(self, X_tr, X_val):
         """
         Training a base classifier using K-fold cross-validation. This method is used when the input data are preprocessed and partitioned into k parts
         
         INPUT
-            partitionedXtr      An numpy array contains k sub-arrays, in which each subarray is Bunch datatype:
-                                + lower:    lower bounds
-                                + upper:    upper bounds
-                                + label:    class labels
-                                partitionedXtr should be normalized (if needed) beforehand using this function
-                                
-        OUTPUT
-            baseClassifier     base classifier was validated using K-fold cross-validation
+            X_tr       An object contains training data with the Bunch datatype, its attributes:
+                        + lower:    lower bounds
+                        + upper:    upper bounds
+                        + label:    class labels
+                        
+            X_val      An object contains validation data with the Bunch datatype, its attributes:
+                        + lower:    lower bounds
+                        + upper:    upper bounds
+                        + label:    class labels
+                    X_tr, X_val should be normalized (if needed) beforehand using this function
         """
-        baseClassifier = None
-        minEr = 2
-        for k in range(self.numFold):
-            classifier_tmp = AccelBatchGFMM(self.gamma, self.teta, self.bthres, self.simil, self.sing, False, self.oper, False)
-            classifier_tmp.fit(partitionedXtr[k].lower, partitionedXtr[k].upper, partitionedXtr[k].label)
+        V_train = X_tr.lower
+        W_train = X_tr.upper
+        classId_train = X_tr.label
+        
+        V_val = X_val.lower
+        W_val = X_val.upper
+        classId_val = X_val.label
+        
+        delta_thres = (self.bthres - self.bthres_min) / self.numClassifier
+        bthres = self.bthres
+        self.numHyperboxes = 0
+        
+        for k in range(self.numClassifier):
+            classifier_Tr = AccelBatchGFMM(self.gamma, self.teta, bthres, self.simil, self.sing, False, self.oper, False)
+            classifier_Tr.fit(V_train, W_train, classId_train)
             
-            # Create the validation set being the remaining training data
-            for l in range(self.numFold):
-                if l == k:
-                    continue
-                else:
-                    if (k == 0 and l == 1) or (l == 0 and k != 0):
-                        lower_valid = partitionedXtr[l].lower
-                        upper_valid = partitionedXtr[l].upper
-                        label_valid = partitionedXtr[l].label
-                    else:
-                        lower_valid = np.vstack((lower_valid, partitionedXtr[l].lower))
-                        upper_valid = np.vstack((upper_valid, partitionedXtr[l].upper))
-                        label_valid = np.append(label_valid, partitionedXtr[l].label)
+            classifier_Val = AccelBatchGFMM(self.gamma, self.teta, bthres, self.simil, self.sing, False, self.oper, False)
+            classifier_Val.fit(V_val, W_val, classId_val)
             
-            # validate the trained model
-            rest = predict(classifier_tmp.V, classifier_tmp.W, classifier_tmp.classId, lower_valid, upper_valid, label_valid, self.gamma, self.oper)
-            er = rest.summis / len(label_valid)
+            rest_Tr = predict(classifier_Tr.V, classifier_Tr.W, classifier_Tr.classId, V_val, W_val, classId_val, self.gamma, self.oper)
+            rest_Val = predict(classifier_Val.V, classifier_Val.W, classifier_Val.classId, V_train, W_train, classId_train, self.gamma, self.oper)
             
-            if er < minEr:
-                baseClassifier = classifier_tmp
+            err_Tr = rest_Tr.summis / len(classifier_Val.classId)
+            err_Val = rest_Val.summis / len(classifier_Tr.classId)            
+            
+            if err_Tr < err_Val:
+                self.baseClassifiers[k] = classifier_Tr
+            else:
+                self.baseClassifiers[k] = classifier_Val
+              
+            self.numHyperboxes = self.numHyperboxes + len(self.baseClassifiers[k].classId)
+            V_train = classifier_Tr.V
+            W_train = classifier_Tr.W
+            classId_train = classifier_Tr.classId
+            
+            V_val = classifier_Val.V
+            W_val = classifier_Val.W
+            classId_val = classifier_Val.classId
+            
+            bthres = bthres - delta_thres
            
-        return baseClassifier
+        return self.baseClassifiers
     
     
     def predict(self, Xl_Test, Xu_Test, patClassIdTest):
@@ -168,8 +183,9 @@ class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
             result = predictDecisionLevelEnsemble(self.baseClassifiers, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)
         
         return result
-        
-if __name__ == '__main__':
+    
+    
+if __name__ == "__main__":
     
     """
     INPUT parameters from command line
@@ -179,10 +195,10 @@ if __name__ == '__main__':
     arg3: + path to file containing the testing dataset (arg1 = 1)
           + percentage of the training dataset in the input file
     arg4: + Number of base classifiers needs to be combined (default: 5)
-    arg5: + Number of folds for cross-validation (default: 10)
-    arg6: + Maximum size of hyperboxes (teta, default: 1)
-    arg7: + gamma value (default: 1)
-    arg8: + Similarity threshold (default: 0.5)
+    arg5: + Maximum size of hyperboxes (teta, default: 1)
+    arg6: + gamma value (default: 1)
+    arg7: + Similarity threshold (default: 0.95)
+    arg8: + Minimum value of Similarity threshold (default: 0.05)
     arg9: + Similarity measure: 'short', 'long' or 'mid' (default: 'mid')
     arg10: + operation used to compute membership value: 'min' or 'prod' (default: 'min')
     arg11: + do normalization of datasets or not? True: Normilize, False: No normalize (default: True)
@@ -191,6 +207,7 @@ if __name__ == '__main__':
     arg14: Mode to split a dataset into arg5 folds (default: 0):
             - 1: Randomly split whole dataset
             - otherwise: Randomly split following each class label
+    arg15: The proportion of training data in the input dataset
     """
     # Init default parameters
     if len(sys.argv) < 5:
@@ -199,24 +216,24 @@ if __name__ == '__main__':
         numBaseClassifier = int(sys.argv[4])
     
     if len(sys.argv) < 6:
-        numFold = 10    
-    else:
-        numFold = int(sys.argv[5])
-    
-    if len(sys.argv) < 7:
         teta = 1    
     else:
-        teta = float(sys.argv[6])
+        teta = float(sys.argv[5])
     
-    if len(sys.argv) < 8:
+    if len(sys.argv) < 7:
         gamma = 1
     else:
-        gamma = float(sys.argv[7])
+        gamma = float(sys.argv[6])
     
-    if len(sys.argv) < 9:
-        bthres = 0.5
+    if len(sys.argv) < 8:
+        bthres = 0.95
     else:
-        bthres = float(sys.argv[8])
+        bthres = float(sys.argv[7])
+        
+    if len(sys.argv) < 9:
+        bthres_min = 0.05
+    else:
+        bthres_min = float(sys.argv[8])
     
     if len(sys.argv) < 10:
         simil = 'mid'
@@ -248,6 +265,11 @@ if __name__ == '__main__':
     else:
         typeOfSplit = int(sys.argv[14])
         
+    if len(sys.argv) < 16:
+        training_rate = 0.5
+    else:
+        training_rate = float(sys.argv[15])
+        
     if sys.argv[1] == '1':
         training_file = sys.argv[2]
         testing_file = sys.argv[3]
@@ -262,11 +284,11 @@ if __name__ == '__main__':
         percent_Training = float(sys.argv[3])
         Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(dataset_file, percent_Training, False)
     
-    classifier = DecisionLevelEnsembleClassifier(numClassifier = numBaseClassifier, numFold = numFold, gamma = gamma, teta = teta, bthres = bthres, simil = simil, sing = sing, oper = oper, isNorm = isNorm, norm_range = norm_range)
-    print('--- Ensemble learning at decision level---')
-    classifier.fit(Xtr, Xtr, patClassIdTr, typeOfSplit)
-    print('Num hyperboxes =', classifier.numHyperboxes)
-
+    classifier = Repeat2FoldDecisionLevelEnsembleClassifier(numClassifier = numBaseClassifier, gamma = gamma, teta = teta, bthres = bthres, bthres_min = bthres_min, simil = simil, sing = sing, oper = oper, isNorm = isNorm, norm_range = norm_range)
+    print('--- Ensemble learning at model level---')
+    classifier.fit(Xtr, Xtr, patClassIdTr, typeOfSplit, training_rate)
+    print('Num hyperboxes = ', classifier.numHyperboxes)
+    
     # Testing
     print("-- Testing --")
     result = classifier.predict(Xtest, Xtest, patClassIdTest)

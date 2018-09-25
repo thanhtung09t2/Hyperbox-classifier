@@ -10,6 +10,8 @@ Base class for batch learning GFMM
 import numpy as np
 from basegfmmclassifier import BaseGFMMClassifier
 from classification import predict
+from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
+from functionhelper.membershipcalc import memberG
 
 class BaseBatchLearningGFMM(BaseGFMMClassifier):
     
@@ -18,7 +20,45 @@ class BaseBatchLearningGFMM(BaseGFMMClassifier):
         
         self.cardin = np.array([])
         self.clusters = np.empty(None, dtype=object)
-
+    
+    
+    def removeContainedHyperboxes(self):
+        """
+        Remove all hyperboxes contained in other hyperboxes
+        """
+        numBoxes = len(self.classId)
+        indtokeep = np.ones(numBoxes, dtype=np.bool)
+        
+        for i in range(numBoxes):
+            memValue = memberG(self.V[i], self.W[i], self.V, self.W, self.gamma, self.oper)
+            isInclude = (self.classId[memValue == 1] == self.classId[i]).all()
+            
+            # memValue always has one value being 1 because of self-containing
+            if np.sum(memValue == 1) > 1 and isInclude == True:
+                indtokeep[i] = False
+                
+        self.V = self.V[indtokeep, :]
+        self.W = self.W[indtokeep, :]
+        self.classId = self.classId[indtokeep]
+        
+    
+    def overlapResolve(self):
+        """
+        Resolve overlapping hyperboxes with bounders contained in self.V and self.W
+        """
+        yX = self.V.shape[0]
+        # Contraction process does not cause overlappling regions => No need to check from the first hyperbox for each hyperbox
+        for i in np.arange(yX - 1):
+            j = i + 1
+            while j < yX:
+                caseDim = hyperboxOverlapTest(self.V, self.W, i, j)
+                if len(caseDim) > 0 and self.classId[i] != self.classId[j]:
+                    self.V, self.W = hyperboxContraction(self.V, self.W, caseDim, j, i)
+                
+                j = j + 1
+                
+        return (self.V, self.W)
+    
 
     def pruning(self, X_Val, classId_Val):
         """

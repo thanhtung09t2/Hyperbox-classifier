@@ -220,7 +220,7 @@ def splitDatasetRndToKPart(Xl, Xu, patClassId, k = 10, isNorm = False, norm_rang
     
     partitionedA = np.empty(k, dtype=Bunch)
     
-    # divide the training set into numClassifier sub-datasets
+    # divide the training set into k sub-datasets
     for i in range(k):
         partitionedA[i] = Bunch(lower = Xl[pos[anchors[i]:anchors[i + 1]], :], upper = Xu[pos[anchors[i]:anchors[i + 1]], :], label = patClassId[pos[anchors[i]:anchors[i + 1]]])
         
@@ -264,7 +264,7 @@ def splitDatasetRndClassBasedToKPart(Xl, Xu, patClassId, k= 10, isNorm = False, 
         # generate random permutation of positions of selected patterns
         pos = np.random.permutation(numSamples)
         
-        # Bin the positions into numClassifier partitions
+        # Bin the positions into k partitions
         anchors = np.round(np.linspace(0, numSamples, k + 1)).astype(np.int64)
         
         for i in range(k):
@@ -343,4 +343,45 @@ def splitDatasetRndClassBasedTo2Part(Xl, Xu, patClassId, training_rate = 0.5, is
             validSet = Bunch(lower = lower_valid, upper = upper_valid, label = label_valid)
             
         
+    return (trainingSet, validSet)
+
+
+def splitDatasetRndTo2Part(Xl, Xu, patClassId, training_rate = 0.5, isNorm = False, norm_range = [0, 1]):
+    """
+    Split a dataset into 2 parts randomly on whole dataset, the proposition training_rate is applied for whole dataset
+    
+        INPUT
+            Xl              Input data lower bounds (rows = objects, columns = features)
+            X_u             Input data upper bounds (rows = objects, columns = features)
+            patClassId      Input data class labels (crisp)
+            training_rate   The percentage of the number of training samples needs to be split
+            isNorm          Do normalization of input training samples or not?
+            norm_range      New ranging of input data after normalization, for example: [0, 1]
+            
+        OUTPUT
+            trainingSet     One object belonging to Bunch datatype contains training data with the following attributes:
+                                + lower:    lower bounds
+                                + upper:    upper bounds
+                                + label:    class labels
+            validSet        One object belonging to Bunch datatype contains validation data with the following attributes:
+                                + lower:    lower bounds
+                                + upper:    upper bounds
+                                + label:    class labels
+            
+    """
+    if isNorm == True:
+        Xl = normalize(Xl, norm_range)
+        Xu = normalize(Xu, norm_range)
+    
+    numSamples = Xl.shape[0]
+    # generate random permutation
+    pos = np.random.permutation(numSamples)
+    
+    # Find the cut-off position
+    pivot = int(numSamples * training_rate)
+    
+    # divide the training set into 2 sub-datasets
+    trainingSet = Bunch(lower = Xl[pos[0:pivot]], upper = Xu[pos[0:pivot]], label = patClassId[pos[0:pivot]])
+    validSet = Bunch(lower = Xl[pos[pivot:]], upper = Xu[pos[pivot:]], label = patClassId[pos[pivot:]])
+    
     return (trainingSet, validSet)
