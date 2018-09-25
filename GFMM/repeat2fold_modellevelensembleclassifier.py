@@ -134,9 +134,11 @@ class Repeat2FoldModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
             err_Val = rest_Val.summis / len(classifier_Tr.classId)            
             
             if err_Tr < minEr_Tr:
+                minEr_Tr = err_Tr
                 opt_Tr = classifier_Tr
             
             if err_Val < minEr_Val:
+                minEr_Val = err_Val
                 opt_Val = classifier_Val
               
             V_train = classifier_Tr.V

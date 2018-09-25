@@ -117,6 +117,7 @@ class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
             er = rest.summis / len(label_valid)
             
             if er < minEr:
+                minEr = er
                 baseClassifier = classifier_tmp
            
         return baseClassifier

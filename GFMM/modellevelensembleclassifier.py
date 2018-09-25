@@ -148,6 +148,7 @@ class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
             er = rest.summis / len(label_valid)
             
             if er < minEr:
+                minEr = er
                 predictor = predictor_tmp
             
             
