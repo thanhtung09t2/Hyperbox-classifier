@@ -194,6 +194,9 @@ class BaseGFMMClassifier(object):
                 #return
             
         # do classification
-        result = predict(self.V, self.W, self.classId, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)
+        result = None
+        
+        if Xl_Test.shape[0] > 0:
+            result = predict(self.V, self.W, self.classId, Xl_Test, Xu_Test, patClassIdTest, self.gamma, self.oper)
         
         return result

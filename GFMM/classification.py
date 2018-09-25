@@ -107,11 +107,10 @@ def predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama = 1
             mem_tmp = memberG(XlT[i, :], XuT[i, :], classifiers[idClf].V, classifiers[idClf].W, gama, oper)
             
             for j in range(noClasses):
-                # get max membership of hyperobxes with class label j
+                # get max membership of hyperboxes with class label j
                 mem_max = mem_tmp[classifiers[idClf].classId == classes[j]].max()
                 
-                if len(mem_max) > 0:
-                    out[i, j] = out[i, j] + mem_max
+                out[i, j] = out[i, j] + mem_max
         
         # compute membership value of each class over all classifiers            
         out[i, :] = out[i, :] / numClassifier
@@ -119,7 +118,8 @@ def predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama = 1
         maxb = out[i].max()
         # get positions of indices of all classes with max membership
         maxMemInd = out[i] == maxb
-        misclass[i] = np.logical_or((classes[maxMemInd] == patClassIdTest[i]).any(), patClassIdTest[i] == 0)
+        #misclass[i] = ~(np.any(classes[maxMemInd] == patClassIdTest[i]) | (patClassIdTest[i] == 0))
+        misclass[i] = np.logical_or((classes[maxMemInd] == patClassIdTest[i]).any(), patClassIdTest[i] == 0) != True
         
     # count number of missclassified patterns
     summis = np.sum(misclass)

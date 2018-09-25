@@ -280,3 +280,67 @@ def splitDatasetRndClassBasedToKPart(Xl, Xu, patClassId, k= 10, isNorm = False, 
                 partitionedA[i] = Bunch(lower = lower_tmp, upper = upper_tmp, label = label_tmp)
         
     return partitionedA
+
+
+def splitDatasetRndClassBasedTo2Part(Xl, Xu, patClassId, training_rate = 0.5, isNorm = False, norm_range = [0, 1]):
+    """
+    Split a dataset into 2 parts randomly according to each class, the proposition training_rate is applied for each class
+    
+        INPUT
+            Xl              Input data lower bounds (rows = objects, columns = features)
+            X_u             Input data upper bounds (rows = objects, columns = features)
+            patClassId      Input data class labels (crisp)
+            training_rate   The percentage of the number of training samples needs to be split
+            isNorm          Do normalization of input training samples or not?
+            norm_range      New ranging of input data after normalization, for example: [0, 1]
+            
+        OUTPUT
+            trainingSet     One object belonging to Bunch datatype contains training data with the following attributes:
+                                + lower:    lower bounds
+                                + upper:    upper bounds
+                                + label:    class labels
+            validSet        One object belonging to Bunch datatype contains validation data with the following attributes:
+                                + lower:    lower bounds
+                                + upper:    upper bounds
+                                + label:    class labels
+            
+    """
+    if isNorm == True:
+        Xl = normalize(Xl, norm_range)
+        Xu = normalize(Xu, norm_range)
+        
+    classes = np.unique(patClassId)
+    trainingSet = None
+    validSet = None
+    
+    for cl in range(classes.size):
+        # Find indices of input samples having the same label with classes[cl]
+        indClass = patClassId == classes[cl]
+        # filter samples having the same class label with classes[cl]
+        Xl_cl = Xl[indClass]
+        Xu_cl = Xu[indClass]
+        pathClass_cl = patClassId[indClass]
+        
+        numSamples = Xl_cl.shape[0]
+        # generate random permutation of positions of selected patterns
+        pos = np.random.permutation(numSamples)
+        
+        # Find the cut-off position
+        pivot = int(numSamples * training_rate)
+        
+        if cl == 0:
+            trainingSet = Bunch(lower = Xl_cl[pos[0:pivot]], upper = Xu_cl[pos[0:pivot]], label = pathClass_cl[pos[0:pivot]])
+            validSet = Bunch(lower = Xl_cl[pos[pivot:]], upper = Xu_cl[pos[pivot:]], label = pathClass_cl[pos[pivot:]])
+        else:
+            lower_train = np.vstack((trainingSet.lower, Xl_cl[pos[0:pivot]]))
+            upper_train = np.vstack((trainingSet.upper, Xu_cl[pos[0:pivot]]))
+            label_train = np.append(trainingSet.label, pathClass_cl[pos[0:pivot]])
+            trainingSet = Bunch(lower = lower_train, upper = upper_train, label = label_train)
+            
+            lower_valid = np.vstack((validSet.lower, Xl_cl[pos[pivot:]]))
+            upper_valid = np.vstack((validSet.upper, Xu_cl[pos[pivot:]]))
+            label_valid = np.append(validSet.label, pathClass_cl[pos[pivot:]])
+            validSet = Bunch(lower = lower_valid, upper = upper_valid, label = label_valid)
+            
+        
+    return (trainingSet, validSet)

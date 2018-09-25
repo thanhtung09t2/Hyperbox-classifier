@@ -191,7 +191,7 @@ if __name__ == '__main__':
           + False: no drawing
     arg5: + Maximum size of hyperboxes (teta, default: 1)
     arg6: + gamma value (default: 1)
-    arg7: + Similarity threshod (default: 0.5)
+    arg7: + Similarity threshold (default: 0.5)
     arg8: + Similarity measure: 'short', 'long' or 'mid' (default: 'mid')
     arg9: + operation used to compute membership value: 'min' or 'prod' (default: 'min')
     arg10: + do normalization of datasets or not? True: Normilize, False: No normalize (default: True)
