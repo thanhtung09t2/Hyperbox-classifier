@@ -76,7 +76,7 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
             self.cardin = np.ones(yX)
             self.clusters = np.empty(yX, dtype=object)
             for i in range(yX):
-                self.clusters[i] = np.array([i], dtype = np.int32)
+                self.clusters[i] = np.array([i], dtype = np.int64)
         
         if self.isDraw:
             mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])

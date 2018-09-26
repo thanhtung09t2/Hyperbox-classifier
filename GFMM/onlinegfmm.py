@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.pardir)
 import ast
 import numpy as np
 import matplotlib
-#matplotlib.use('TkAgg')
+matplotlib.use('TkAgg')
 
 from functionhelper.membershipcalc import memberG
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
