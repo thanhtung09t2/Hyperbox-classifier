@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.pardir)
 import ast
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 
 from functionhelper.membershipcalc import memberG
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
@@ -73,7 +73,7 @@ class OnlineGFMM(BaseGFMMClassifier):
         mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
         
         listLines = list()
-        listInputSamplePoints = list();
+        listInputSamplePoints = list()
         
         if self.isDraw:
             drawing_canvas = self.initializeCanvasGraph("GFMM - Online learning", xX)
@@ -88,6 +88,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                         # reset input point drawing
                         for point in listInputSamplePoints:
                             point.remove()
+                        listInputSamplePoints.clear()
                     
                     color_ = 'k'
                     if classOfX < len(mark_col):
