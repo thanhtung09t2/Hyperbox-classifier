@@ -78,6 +78,18 @@ class OnlineGFMM(BaseGFMMClassifier):
         if self.isDraw:
             drawing_canvas = self.initializeCanvasGraph("GFMM - Online learning", xX)
             
+            if self.V.size > 0:
+                # draw existed hyperboxes
+                color_ = np.array(['k'] * len(self.classId), dtype = object)
+                for c in range(len(self.classId)):
+                    if self.classId[c] < len(mark_col):
+                        color_[c] = mark_col[self.classId[c]]
+                
+                hyperboxes = drawbox(self.V[:, 0:np.minimum(xX,3)], self.W[:, 0:np.minimum(xX,3)], drawing_canvas, color_)
+                listLines.append(hyperboxes)
+                self.delay()
+    
+    
         while self.misclass > 0 and teta >= self.tMin:
             # for each input sample
             for i in range(yX):
