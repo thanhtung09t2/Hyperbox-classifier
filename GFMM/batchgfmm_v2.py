@@ -34,6 +34,7 @@ import sys, os
 sys.path.insert(0, os.path.pardir)
 
 import ast
+import time
 import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
@@ -67,9 +68,12 @@ class BatchGFMMV2(BaseBatchLearningGFMM):
         X_u          Input data upper bounds (rows = objects, columns = features)
         patClassId  Input data class labels (crisp)
         """
+        
         if self.isNorm == True:
             X_l, X_u = self.dataPreprocessing(X_l, X_u)
-         
+        
+        time_start = time.clock()
+        
         self.V = X_l
         self.W = X_u
         self.classId = patClassId
@@ -175,6 +179,9 @@ class BatchGFMMV2(BaseBatchLearningGFMM):
                         break
                         
                 i = i + 1
+        
+        time_end = time.clock()
+        self.elapsed_training_time = time_end - time_start
         
         return self
 

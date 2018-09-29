@@ -96,7 +96,13 @@ def predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama = 1
     
     yX = XlT.shape[0]
     misclass = np.zeros(yX, dtype=np.bool)
-    classes = np.unique(classifiers[0].classId)
+    # get all class labels of all base classifiers
+    classId = classifiers[0].classId
+    for i in range(numClassifier):
+        if i != 0:
+            classId = np.union1d(classId, classifiers[i].classId)
+        
+    classes = np.unique(classId)
     noClasses = len(classes)
     out = np.zeros((yX, noClasses), dtype=np.float64)
     
@@ -126,6 +132,86 @@ def predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama = 1
     
     result = Bunch(summis = summis, misclass = misclass, out = out, classes = classes)
     return result
+    
+
+def predictOnlineOfflineCombination(onlClassifier, offClassifier, XlT, XuT, patClassIdTest, gama = 1, oper = 'min'):
+    """
+    GFMM online-offline classifier (test routine)
+    
+      result = predictOnlineOfflineCombination(onlClassifier, offClassifier, XlT,XuT,patClassIdTest,gama,oper)
+  
+    INPUT
+      onlClassifier   online classifier with the following attributes:
+                        + V: hyperbox lower bounds
+                        + W: hyperbox upper bounds
+                        + classId: hyperbox class labels (crisp)
+                        
+      offClassifier   offline classifier with the following attributes:
+                        + V: hyperbox lower bounds
+                        + W: hyperbox upper bounds
+                        + classId: hyperbox class labels (crisp) 
+                        
+      XlT               Test data lower bounds (rows = objects, columns = features)
+      XuT               Test data upper bounds (rows = objects, columns = features)
+      patClassIdTest    Test data class labels (crisp)
+      gama              Membership function slope (default: 1)
+      oper              Membership calculation operation: 'min' or 'prod' (default: 'min')
+  
+   OUTPUT
+      result           A object with Bunch datatype containing all results as follows:
+                          + summis           Number of misclassified objects
+                          + misclass         Binary error map
+                          + out              Soft class memberships
+
+    """
+
+    #initialization
+    yX = XlT.shape[0]
+    misclass = np.zeros(yX)
+    classes = np.union1d(onlClassifier.classId, offClassifier.classId)
+    noClasses = classes.size
+    mem_onl = np.zeros((yX, onlClassifier.V.shape[0]))
+    mem_off = np.zeros((yX, offClassifier.V.shape[0]))
+    out = np.zeros((yX, noClasses))
+
+    # classifications
+    for i in range(yX):
+        mem_onl[i, :] = memberG(XlT[i, :], XuT[i, :], onlClassifier.V, onlClassifier.W, gama, oper) # calculate memberships for all hyperboxes in the online classifier
+        bmax_onl = mem_onl[i, :].max()	                                   # get max membership value among hyperboxes in the online classifier
+        maxVind_onl = np.nonzero(mem_onl[i,:] == bmax_onl)[0]             # get indexes of all hyperboxes in the online classifier with max membership
+        
+        mem_off[i, :] = memberG(XlT[i, :], XuT[i, :], offClassifier.V, offClassifier.W, gama, oper) # calculate memberships for all hyperboxes in the offline classifier
+        bmax_off = mem_off[i, :].max()	                                   # get max membership value among hyperboxes in the offline classifier
+        maxVind_off = np.nonzero(mem_off[i,:] == bmax_off)[0]                 # get indexes of all hyperboxes in the offline classifier with max membership
         
         
+        for j in range(noClasses):
+            out_onl_mems = mem_onl[i, onlClassifier.classId == classes[j]]            # get max memberships for each class of online classifier
+            if len(out_onl_mems) > 0:
+                out_onl = out_onl_mems.max()
+            else:
+                out_onl = 0
+                
+            out_off_mems = mem_off[i, offClassifier.classId == classes[j]]            # get max memberships for each class of offline classifier
+            if len(out_off_mems) > 0:
+                out_off = out_off_mems.max()
+            else:
+                out_off = 0
+            
+            if out_onl > out_off:
+                out[i, j] = out_onl
+            else:
+                out[i, j] = out_off
+        
+        if bmax_onl > bmax_off:
+            misclass[i] = ~(np.any(onlClassifier.classId[maxVind_onl] == patClassIdTest[i]) | (patClassIdTest[i] == 0))
+        else:
+            misclass[i] = ~(np.any(offClassifier.classId[maxVind_off] == patClassIdTest[i]) | (patClassIdTest[i] == 0))
+    
+    # results
+    summis = np.sum(misclass).astype(np.int64)
+    
+    result = Bunch(summis = summis, misclass = misclass, out = out)
+    return result
+      
     

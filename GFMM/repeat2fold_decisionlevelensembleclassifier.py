@@ -29,6 +29,7 @@ import sys, os
 sys.path.insert(0, os.path.pardir)
 
 import numpy as np
+import time
 import ast
 from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM
@@ -71,8 +72,13 @@ class Repeat2FoldDecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
             (X_tr, X_val) = splitDatasetRndTo2Part(X_l, X_u, patClassId, training_rate)
         else:
             (X_tr, X_val) = splitDatasetRndClassBasedTo2Part(X_l, X_u, patClassId, training_rate)
-            
+        
+        time_start = time.clock()
+        
         self.training(X_tr, X_val)
+        
+        time_end = time.clock()
+        self.elapsed_training_time = time_end - time_start
         
         return self
     

@@ -34,6 +34,7 @@ import sys, os
 sys.path.insert(0, os.path.pardir)
 
 import numpy as np
+import time
 import ast
 from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM
@@ -77,8 +78,13 @@ class Repeat2FoldModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
             (X_tr, X_val) = splitDatasetRndTo2Part(X_l, X_u, patClassId, training_rate)
         else:
             (X_tr, X_val) = splitDatasetRndClassBasedTo2Part(X_l, X_u, patClassId, training_rate)
-            
+        
+        time_start = time.clock()
+        
         self.training(X_tr, X_val)
+        
+        time_end = time.clock()
+        self.elapsed_training_time = time_end - time_start
         
         return self
     
@@ -279,16 +285,6 @@ if __name__ == "__main__":
         dataset_file = sys.argv[2]
         percent_Training = float(sys.argv[3])
         Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(dataset_file, percent_Training, False)
-    
-    
-    
-    training_file = 'synthetic_train.dat'
-    testing_file = 'synthetic_test.dat'
-
-    # Read training file
-    Xtr, X_tmp, patClassIdTr, pat_tmp = loadDataset(training_file, 1, False)
-    # Read testing file
-    X_tmp, Xtest, pat_tmp, patClassIdTest = loadDataset(testing_file, 0, False)
     
     classifier = Repeat2FoldModelLevelEnsembleClassifier(numClassifier = numBaseClassifier, gamma = gamma, teta = teta, bthres = bthres, bthres_min = bthres_min, simil = simil, sing = sing, oper = oper, isNorm = isNorm, norm_range = norm_range)
     print('--- Ensemble learning at model level---')

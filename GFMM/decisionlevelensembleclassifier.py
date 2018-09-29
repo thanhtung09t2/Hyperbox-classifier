@@ -28,6 +28,7 @@ import sys, os
 sys.path.insert(0, os.path.pardir)
 
 import numpy as np
+import time
 import ast
 from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM
@@ -65,6 +66,8 @@ class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
         """
         X_l, X_u = self.dataPreprocessing(X_l, X_u)
         self.numHyperboxes = 0
+        
+        time_start = time.clock()
     
         for i in range(self.numClassifier):
             if typeOfSplitting == 1:
@@ -74,7 +77,10 @@ class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
                 
             self.baseClassifiers[i] = self.training(partitionedXtr)
             self.numHyperboxes = self.numHyperboxes + len(self.baseClassifiers[i].classId)
-            
+        
+        time_end = time.clock()
+        self.elapsed_training_time = time_end - time_start
+        
         return self
     
     

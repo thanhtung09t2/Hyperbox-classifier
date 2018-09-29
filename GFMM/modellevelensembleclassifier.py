@@ -32,6 +32,7 @@ import sys, os
 sys.path.insert(0, os.path.pardir)
 
 import numpy as np
+import time
 import ast
 from basebatchlearninggfmm import BaseBatchLearningGFMM
 from accelbatchgfmm import AccelBatchGFMM
@@ -67,6 +68,8 @@ class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
         """
 
         X_l, X_u = self.dataPreprocessing(X_l, X_u)
+        
+        time_start = time.clock()
         
         for i in range(self.numClassifier):
         
@@ -106,6 +109,9 @@ class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
         self.cardin = combClassifier.cardin
         self.clusters = combClassifier.clusters
         self.numHyperboxes = len(self.classId)
+        
+        time_end = time.clock()
+        self.elapsed_training_time = time_end - time_start
         
         return self
               

@@ -1,24 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 30 22:39:47 2018
+Created on Wed Sep 26 22:26:26 2018
 
-@author: Thanh Tung Khuat
-
-onlnGFMM - Online GFMM classifier (training core)
-
-     OnlineGFMM(gamma, teta, tMin, isDraw, oper, V, W, classId, isNorm, norm_range)
-  
-   INPUT
-     V              Hyperbox lower bounds for the model to be updated using new data
-     W              Hyperbox upper bounds for the model to be updated using new data
-     classId        Hyperbox class labels (crisp)  for the model to be updated using new data
-     gamma          Membership function slope (default: 1), datatype: array or scalar
-     teta           Maximum hyperbox size (default: 1)
-     tMin           Minimum value of Teta
-     isDraw         Progress plot flag (default: False)
-     oper           Membership calculation operation: 'min' or 'prod' (default: 'min')
-     isNorm         Do normalization of input training samples or not?
-     norm_range     New ranging of input data after normalization    
+@author: thanh
 """
 
 import sys, os
@@ -51,7 +35,39 @@ class OnlineGFMM(BaseGFMMClassifier):
         self.W = W
         self.classId = classId
         self.misclass = 1
+        self.cardin = list()
         
+    
+    def calculateProbability(self, idHyperbox, X_l, X_u, memVal):
+        """
+        Compute the selected probability of current hyperbox
+        
+        INPUT:
+            + idHyperbox        Index of the hyperbox being considered
+            + X_l, X_u          Lower and upper bounds of input data
+            
+        OUTPUT:
+            The probability value = the number of samples located in hyperbox / total samples belonging to the hyperbox
+        """
+        index_Samples = self.cardin[idHyperbox]
+        num_in = num_out = 0
+        
+        for i in index_Samples:
+            b = memberG(X_l[i], X_u[i], self.V[idHyperbox], self.W[idHyperbox], self.gamma)
+            
+            if b[0] == 1:
+                num_in = num_in + 1  # Increate the number of samples located within the current hyperbox
+            else:
+                num_out = num_out + 1
+        
+        if num_in + num_out == 0:
+            prob = 1
+        else:
+            # prob = (3 * (num_in / (num_in + num_out)) + memVal) / 4
+            prob = num_in / (num_in + num_out)
+        
+        return prob
+    
         
     def fit(self, X_l, X_u, patClassId):
         """
@@ -62,11 +78,11 @@ class OnlineGFMM(BaseGFMMClassifier):
          patClassId     Input data class labels (crisp). patClassId[i] = 0 corresponds to an unlabeled item
         
         """
-        print('--Online Learning--')
+        print('--Probability Online Learning--')
         
         if self.isNorm == True:
             X_l, X_u = self.dataPreprocessing(X_l, X_u)
-        
+            
         time_start = time.clock()
         
         yX, xX = X_l.shape
@@ -76,11 +92,10 @@ class OnlineGFMM(BaseGFMMClassifier):
         mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
         
         listLines = list()
-        listInputSamplePoints = list()
+        listInputSamplePoints = list();
         
         if self.isDraw:
-            drawing_canvas = self.initializeCanvasGraph("GFMM - Online learning", xX)
-            
+            drawing_canvas = self.initializeCanvasGraph("GFMM - Probability Online learning", xX)
             if self.V.size > 0:
                 # draw existed hyperboxes
                 color_ = np.array(['k'] * len(self.classId), dtype = object)
@@ -91,9 +106,12 @@ class OnlineGFMM(BaseGFMMClassifier):
                 hyperboxes = drawbox(self.V[:, 0:np.minimum(xX,3)], self.W[:, 0:np.minimum(xX,3)], drawing_canvas, color_)
                 listLines.extend(hyperboxes)
                 self.delay()
-    
+            
         while self.misclass > 0 and teta >= self.tMin:
             # for each input sample
+            for j in range(len(self.cardin)):
+                self.cardin[j] = np.array([], dtype = np.int64)
+                
             for i in range(yX):
                 classOfX = patClassId[i]
                 # draw input samples
@@ -129,6 +147,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                     self.V = np.array([X_l[0]])
                     self.W = np.array([X_u[0]])
                     self.classId = np.array([patClassId[0]])
+                    self.cardin.append(np.array([0], dtype=np.int64))
                     
                     if self.isDraw == True:
                         # draw hyperbox
@@ -148,39 +167,54 @@ class OnlineGFMM(BaseGFMMClassifier):
                     
                     if bSort[0] != 1 or (classOfX != self.classId[index[0]] and classOfX != 0):
                         adjust = False
+
                         for j in index:
-                            # test violation of max hyperbox size and class labels
-                            if ((np.maximum(self.W[j], X_u[i]) - np.minimum(self.V[j], X_l[i])) <= teta).all() == True and (classOfX == self.classId[j] or self.classId[j] == 0 or classOfX == 0):
-                                # adjust the j-th hyperbox
-                                self.V[j] = np.minimum(self.V[j], X_l[i])
-                                self.W[j] = np.maximum(self.W[j], X_u[i])
-                                indOfWinner = j
-                                adjust = True
-                                if classOfX != 0 and self.classId[j] == 0:
-                                    self.classId[j] = classOfX
-                                
-                                if self.isDraw:
-                                    # Handle drawing graph
-                                    box_color = 'k'
-                                    if self.classId[j] < len(mark_col):
-                                        box_color = mark_col[self.classId[j]]
+                            if classOfX == self.classId[j] or self.classId[j] == 0 or classOfX == 0:
+#                                zz = zz + 1
+#                                if zz == 10:
+#                                    break
+                                # test violation of max hyperbox size and class labels
+#                                selected_Prob = self.calculateProbability(j, X_l, X_u, bSort[j])
+#                                print('selected_Prob =', selected_Prob)
+                                # if np.random.rand() <= selected_Prob and ((np.maximum(self.W[j], X_u[i]) - np.minimum(self.V[j], X_l[i])) <= teta).all() == True:
+                                    # adjust the j-th hyperbox
+                                if ((np.maximum(self.W[j], X_u[i]) - np.minimum(self.V[j], X_l[i])) <= teta).all() == True:
+                                    selected_Prob = self.calculateProbability(j, X_l, X_u, bSort[j])
                                     
-                                    try:
-                                        listLines[j].remove()
-                                    except:
-                                        pass
-                                    
-                                    hyperbox = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)                                 
-                                    listLines[j] = hyperbox[0]
-                                    self.delay()
-                                    
-                                break
+                                    if np.random.rand() <= selected_Prob:
+                                        self.V[j] = np.minimum(self.V[j], X_l[i])
+                                        self.W[j] = np.maximum(self.W[j], X_u[i])
+                                        
+                                        self.cardin[j] = np.append(self.cardin[j], i)
+                                        
+                                        indOfWinner = j
+                                        adjust = True
+                                        if classOfX != 0 and self.classId[j] == 0:
+                                            self.classId[j] = classOfX
+                                        
+                                        if self.isDraw:
+                                            # Handle drawing graph
+                                            box_color = 'k'
+                                            if self.classId[j] < len(mark_col):
+                                                box_color = mark_col[self.classId[j]]
+                                            
+                                            try:
+                                                listLines[j].remove()
+                                            except:
+                                                pass
+                                            
+                                            hyperbox = drawbox(np.asmatrix(self.V[j, 0:np.minimum(xX, 3)]), np.asmatrix(self.W[j, 0:np.minimum(xX, 3)]), drawing_canvas, box_color)                                 
+                                            listLines[j] = hyperbox[0]
+                                            self.delay()
+                                            
+                                        break
                                 
                         # if i-th sample did not fit into any existing box, create a new one
                         if not adjust:
                             self.V = np.vstack((self.V, X_l[i]))
                             self.W = np.vstack((self.W, X_u[i]))
                             self.classId = np.append(self.classId, classOfX)
+                            self.cardin.append(np.array([i], dtype=np.int64))
 
                             if self.isDraw:
                                 # handle drawing graph
@@ -219,7 +253,9 @@ class OnlineGFMM(BaseGFMMClassifier):
                                             listLines[indOfWinner] = hyperboxes[1]                                      
                                             self.delay()
                             
-           						
+                    else:
+                        self.cardin[index[0]] = np.append(self.cardin[index[0]], i)
+                       
             teta = teta * 0.9
             result = predict(self.V, self.W, self.classId, X_l, X_u, patClassId, self.gamma, self.oper)
             self.misclass = result.summis
@@ -240,7 +276,7 @@ class OnlineGFMM(BaseGFMMClassifier):
         
         time_end = time.clock()
         self.elapsed_training_time = time_end - time_start
-
+        
         return self
     
         
@@ -323,5 +359,3 @@ if __name__ == '__main__':
         print("Number of wrong predicted samples = ", result.summis)
         numTestSample = Xtest.shape[0]
         print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")
-   
-        

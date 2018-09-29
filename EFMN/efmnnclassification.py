@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.pardir)
 
 import ast
 import numpy as np
+import time
 import matplotlib
 matplotlib.use('TkAgg')
 
@@ -56,6 +57,8 @@ class EFMNNClassification(BaseFMNNClassifier):
         if self.isNorm == True:
             Xh = self.dataPreprocessing(Xh)
         
+        time_start = time.clock()
+        
         yX, xX = Xh.shape
         
         mark = np.array(['*', 'o', 'x', '+', '.', ',', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', 'h', 'H', 'X', 'D', '|', '_'])
@@ -65,7 +68,17 @@ class EFMNNClassification(BaseFMNNClassifier):
         
         if self.isDraw:
             drawing_canvas = self.initializeCanvasGraph("EFMNN - Enhanced fuzzy min-max neural network - 9 cases for the hyperbox expansion and contraction", xX)
-            
+            if self.V.size > 0:
+                # draw existed hyperboxes
+                color_ = np.array(['k'] * len(self.classId), dtype = object)
+                for c in range(len(self.classId)):
+                    if self.classId[c] < len(mark_col):
+                        color_[c] = mark_col[self.classId[c]]
+                
+                hyperboxes = drawbox(self.V[:, 0:np.minimum(xX,3)], self.W[:, 0:np.minimum(xX,3)], drawing_canvas, color_)
+                listLines.extend(hyperboxes)
+                self.delay()
+                
         # for each input sample
         for i in range(yX):
             classOfX = patClassId[i]
@@ -203,7 +216,9 @@ class EFMNNClassification(BaseFMNNClassifier):
                         listLines.append(hyperbox[0])
                         self.delay()
                             
-           						
+        time_end = time.clock()
+        self.elapsed_training_time = time_end - time_start
+  						
         return self
     
     
