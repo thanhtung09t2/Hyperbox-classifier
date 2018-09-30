@@ -44,10 +44,10 @@ matplotlib.use('TkAgg')
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean, splitDatasetRndClassBasedTo2Part, splitDatasetRndTo2Part
 from functionhelper.matrixhelper import delete_const_dims
 from functionhelper.bunchdatatype import Bunch
-from basebatchlearninggfmm import BaseBatchLearningGFMM
-from onlinegfmm import OnlineGFMM
-from accelbatchgfmm import AccelBatchGFMM
-from classification import predictOnlineOfflineCombination
+from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
+from GFMM.onlinegfmm import OnlineGFMM
+from GFMM.accelbatchgfmm import AccelBatchGFMM
+from GFMM.classification import predictOnlineOfflineCombination
 
 class OnlineOfflineGFMM(BaseBatchLearningGFMM):
     

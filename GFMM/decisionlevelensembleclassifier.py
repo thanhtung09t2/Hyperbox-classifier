@@ -30,12 +30,11 @@ sys.path.insert(0, os.path.pardir)
 import numpy as np
 import time
 import ast
-from basebatchlearninggfmm import BaseBatchLearningGFMM
-from accelbatchgfmm import AccelBatchGFMM
-from classification import predictDecisionLevelEnsemble
+from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
+from GFMM.accelbatchgfmm import AccelBatchGFMM
+from GFMM.classification import predict, predictDecisionLevelEnsemble
 from functionhelper.matrixhelper import delete_const_dims
 from functionhelper.prepocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
-from classification import predict
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
 
 class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):

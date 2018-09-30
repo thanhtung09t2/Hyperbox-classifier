@@ -20,10 +20,10 @@ matplotlib.use('TkAgg')
 
 from functionhelper.membershipcalc import memberG
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
-from classification import predict
+from GFMM.classification import predict
 from functionhelper.drawinghelper import drawbox
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
-from basegfmmclassifier import BaseGFMMClassifier
+from GFMM.basegfmmclassifier import BaseGFMMClassifier
 
 class OnlineGFMM(BaseGFMMClassifier):
     

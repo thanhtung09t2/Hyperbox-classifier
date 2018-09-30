@@ -42,7 +42,7 @@ matplotlib.use('TkAgg')
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
 from functionhelper.drawinghelper import drawbox
 from functionhelper.hyperboxadjustment import isOverlap
-from basebatchlearninggfmm import BaseBatchLearningGFMM
+from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
 from functionhelper.membershipcalc import asym_similarity_one_many, memberG
 
 class AccelBatchGFMM(BaseBatchLearningGFMM):

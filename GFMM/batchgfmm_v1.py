@@ -40,7 +40,7 @@ import time
 import matplotlib
 matplotlib.use('TkAgg')
 
-from basebatchlearninggfmm import BaseBatchLearningGFMM
+from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
 from functionhelper.membershipcalc import memberG
 from functionhelper.drawinghelper import drawbox
 from functionhelper.hyperboxadjustment import isOverlap

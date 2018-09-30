@@ -44,11 +44,11 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
-from basebatchlearninggfmm import BaseBatchLearningGFMM
-from onlinegfmm import OnlineGFMM
-from accelbatchgfmm import AccelBatchGFMM
-from batchgfmm_v1 import BatchGFMMV1
-from batchgfmm_v2 import BatchGFMMV2
+from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
+from GFMM.onlinegfmm import OnlineGFMM
+from GFMM.accelbatchgfmm import AccelBatchGFMM
+from GFMM.batchgfmm_v1 import BatchGFMMV1
+from GFMM.batchgfmm_v2 import BatchGFMMV2
 
 class OnlineAggloGFMM(BaseBatchLearningGFMM):
     

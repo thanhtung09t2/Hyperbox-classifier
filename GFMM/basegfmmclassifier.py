@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from classification import predict
+from GFMM.classification import predict
 from functionhelper.matrixhelper import delete_const_dims, pca_transform
 from functionhelper.prepocessinghelper import normalize
 
