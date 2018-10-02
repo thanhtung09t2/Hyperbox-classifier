@@ -47,7 +47,7 @@ class BaseGFMMClassifier(object):
         """
         
         # delete constant dimensions
-        X_l, X_u = delete_const_dims(X_l, X_u)
+        #X_l, X_u = delete_const_dims(X_l, X_u)
         
         # Normalize input samples if needed
         if X_l.min() < self.loLim or X_u.min() < self.loLim or X_u.max() > self.hiLim or X_l.max() > self.hiLim:
@@ -171,7 +171,7 @@ class BaseGFMMClassifier(object):
                           + out              Soft class memberships
                           + mem              Hyperbox memberships
         """
-        Xl_Test, Xu_Test = delete_const_dims(Xl_Test, Xu_Test)
+        #Xl_Test, Xu_Test = delete_const_dims(Xl_Test, Xu_Test)
         # Normalize testing dataset if training datasets were normalized
         if len(self.mins) > 0:
             noSamples = Xl_Test.shape[0]

@@ -20,8 +20,8 @@ if __name__ == '__main__':
     save_result_batch_folder_path = root_path + '\\Experiment\\Online_Batch_Agglo'
     dataset_path = root_path + '\\Dataset\\train_test'
     
-    dataset_names = ['aggregation', 'circle', 'complex9', 'DiagnosticBreastCancer', 'elliptical_10_2', 'fourty', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
-    # dataset_names = ['ringnorm', 'twonorm', 'waveform']
+    # dataset_names = ['aggregation', 'circle', 'complex9', 'DiagnosticBreastCancer', 'elliptical_10_2', 'fourty', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
+    dataset_names = ['ringnorm', 'twonorm', 'waveform']
     for dt in range(len(dataset_names)):
         #try:
         print('Current dataset: ', dataset_names[dt])
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         data_save = np.hstack((teta_onl_save.reshape(-1, 1), teta_agglo_save.reshape(-1, 1), numhyperbox_online_save.reshape(-1, 1), numhyperbox_final_save.reshape(-1, 1), 
                                training_time_save.reshape(-1, 1), testing_error_final_save.reshape(-1, 1)))
         
-        filename = save_result_accel_folder_path + '\\' + dataset_names[dt] + '.txt'
+        filename = save_result_batch_folder_path + '\\' + dataset_names[dt] + '.txt'
         
         open(filename, 'w').close() # make existing file empty
         

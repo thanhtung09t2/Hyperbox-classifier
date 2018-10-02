@@ -146,7 +146,7 @@ class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
                           + out           Soft class memberships, rows are testing input patterns, columns are indices of classes
                           + classes       Store class labels corresponding column indices of out
         """
-        Xl_Test, Xu_Test = delete_const_dims(Xl_Test, Xu_Test)
+        #Xl_Test, Xu_Test = delete_const_dims(Xl_Test, Xu_Test)
         # Normalize testing dataset if training datasets were normalized
         if len(self.mins) > 0 and self.isNorm == True:
             noSamples = Xl_Test.shape[0]
