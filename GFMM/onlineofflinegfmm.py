@@ -110,7 +110,7 @@ class OnlineOfflineGFMM(BaseBatchLearningGFMM):
                           + out              Soft class memberships
                           + mem              Hyperbox memberships
         """
-        Xl_Test, Xu_Test = delete_const_dims(Xl_Test, Xu_Test)
+        #Xl_Test, Xu_Test = delete_const_dims(Xl_Test, Xu_Test)
         # Normalize testing dataset if training datasets were normalized
         if len(self.mins) > 0:
             noSamples = Xl_Test.shape[0]

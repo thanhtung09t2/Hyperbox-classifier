@@ -91,7 +91,9 @@ class OnlineGFMM(BaseGFMMClassifier):
                 hyperboxes = drawbox(self.V[:, 0:np.minimum(xX,3)], self.W[:, 0:np.minimum(xX,3)], drawing_canvas, color_)
                 listLines.extend(hyperboxes)
                 self.delay()
-    
+        
+        self.misclass = 1
+        
         while self.misclass > 0 and teta >= self.tMin:
             # for each input sample
             for i in range(yX):

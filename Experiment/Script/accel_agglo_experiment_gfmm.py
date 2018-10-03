@@ -12,8 +12,8 @@ if __name__ == '__main__':
     save_result_folder_path = root_path + '\\Experiment\\Acel_Agglo'
     dataset_path = root_path + '\\Dataset\\train_test'
     
-    dataset_names = ['aggregation', 'circle', 'complex9', 'DiagnosticBreastCancer', 'elliptical_10_2', 'fourty', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
-    # dataset_names = ['ringnorm', 'twonorm', 'waveform']
+    #dataset_names = ['aggregation', 'circle', 'complex9', 'DiagnosticBreastCancer', 'elliptical_10_2', 'fourty', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
+    dataset_names = ['ringnorm', 'twonorm', 'waveform']
     for dt in range(len(dataset_names)):
         #try:
         print('Current dataset: ', dataset_names[dt])
