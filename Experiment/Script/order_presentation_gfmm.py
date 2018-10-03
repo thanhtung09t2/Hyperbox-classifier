@@ -99,6 +99,7 @@ if __name__ == '__main__':
         open(filename_online, 'w').close() # make existing file empty
         
         with open(filename_online,'a') as f_handle:
+            f_handle.write('teta = %f \n' % teta)
             f_handle.writelines('No hyperboxes, Training time, Testing error\n')
             np.savetxt(f_handle, data_online_save, fmt='%f', delimiter=', ')
         
@@ -109,6 +110,7 @@ if __name__ == '__main__':
         open(filename_accel_agglo, 'w').close() # make existing file empty
         
         with open(filename_accel_agglo,'a') as f_handle:
+            f_handle.write('teta = %f, simil_thres = %f, measure = short\n' % (teta, simil_thres))
             f_handle.writelines('No hyperboxes, Training time, Testing error\n')
             np.savetxt(f_handle, data_accel_agglo_save, fmt='%f', delimiter=', ')
             
@@ -119,6 +121,7 @@ if __name__ == '__main__':
         open(filename_batch_agglo, 'w').close() # make existing file empty
         
         with open(filename_batch_agglo,'a') as f_handle:
+            f_handle.write('teta = %f, simil_thres = %f, measure = short\n' % (teta, simil_thres))
             f_handle.writelines('No hyperboxes, Training time, Testing error\n')
             np.savetxt(f_handle, data_batch_agglo_save, fmt='%f', delimiter=', ')
            
