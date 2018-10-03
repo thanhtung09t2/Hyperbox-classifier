@@ -109,7 +109,7 @@ if __name__ == '__main__':
         open(filename, 'w').close() # make existing file empty
         
         with open(filename,'a') as f_handle:
-            f_handle.write('Teta = %d \n' % (teta))
+            f_handle.write('Teta = %f \n' % (teta))
             f_handle.writelines('simi thres, No hyperboxes Short simi, Training time Short simi, Testing error Short simi, No hyperboxes Long simi, Training time Long simi, Testing error Long simi, \
                                 No hyperboxes Mid max simi, Training time Mid max simi, Testing error Mid max simi,\
                                 No hyperboxes Mid min simi, Training time Mid min simi, Testing error Mid min simi \n')
