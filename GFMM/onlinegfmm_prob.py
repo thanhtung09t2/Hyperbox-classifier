@@ -16,7 +16,10 @@ import ast
 import numpy as np
 import time
 import matplotlib
-matplotlib.use('TkAgg')
+try:
+    matplotlib.use('TkAgg')
+except:
+    pass
 
 from functionhelper.membershipcalc import memberG
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction

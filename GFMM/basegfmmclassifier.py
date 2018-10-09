@@ -133,6 +133,7 @@ class BaseGFMMClassifier(object):
             OUTPUT
                 The output as mentioned above
         """
+ 
         # get min/max memberships from triu and tril of memberhsip matrix which might not be symmetric (simil=='mid')
         if asimil_type == 'min':
             transformedA = np.minimum(np.flipud(np.rot90(np.tril(A, -1))), np.triu(A, 1))  # rotate tril to align it with triu for min (max) operation
@@ -140,7 +141,7 @@ class BaseGFMMClassifier(object):
             transformedA = np.maximum(np.flipud(np.rot90(np.tril(A, -1))), np.triu(A, 1))
         
         ind_rows, ind_columns = np.nonzero(transformedA)
-        values = A[ind_rows, ind_columns]
+        values = transformedA[ind_rows, ind_columns]
         
         if isSort == True:
             ind_SortedTransformedA = np.argsort(values)[::-1]

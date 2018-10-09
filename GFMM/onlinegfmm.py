@@ -32,7 +32,10 @@ import ast
 import numpy as np
 import time
 import matplotlib
-matplotlib.use('TkAgg')
+try:
+    matplotlib.use('TkAgg')
+except:
+    pass
 
 from functionhelper.membershipcalc import memberG
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
@@ -152,7 +155,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                         adjust = False
                         for j in index:
                             # test violation of max hyperbox size and class labels
-                            if ((np.maximum(self.W[j], X_u[i]) - np.minimum(self.V[j], X_l[i])) <= teta).all() == True and (classOfX == self.classId[j] or self.classId[j] == 0 or classOfX == 0):
+                            if (classOfX == self.classId[j] or self.classId[j] == 0 or classOfX == 0) and ((np.maximum(self.W[j], X_u[i]) - np.minimum(self.V[j], X_l[i])) <= teta).all() == True:
                                 # adjust the j-th hyperbox
                                 self.V[j] = np.minimum(self.V[j], X_l[i])
                                 self.W[j] = np.maximum(self.W[j], X_u[i])
@@ -177,7 +180,7 @@ class OnlineGFMM(BaseGFMMClassifier):
                                     self.delay()
                                     
                                 break
-                                
+                               
                         # if i-th sample did not fit into any existing box, create a new one
                         if not adjust:
                             self.V = np.vstack((self.V, X_l[i]))
@@ -223,8 +226,9 @@ class OnlineGFMM(BaseGFMMClassifier):
                             
            						
             teta = teta * 0.9
-            result = predict(self.V, self.W, self.classId, X_l, X_u, patClassId, self.gamma, self.oper)
-            self.misclass = result.summis
+            if teta >= self.tMin:
+                result = predict(self.V, self.W, self.classId, X_l, X_u, patClassId, self.gamma, self.oper)
+                self.misclass = result.summis
 
         # Draw last result  
 #        if self.isDraw == True:

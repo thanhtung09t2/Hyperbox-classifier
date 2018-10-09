@@ -41,7 +41,10 @@ import ast
 import numpy as np
 import time
 import matplotlib
-matplotlib.use('TkAgg')
+try:
+    matplotlib.use('TkAgg')
+except:
+    pass
 
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean, splitDatasetRndClassBasedTo2Part, splitDatasetRndTo2Part
 from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM

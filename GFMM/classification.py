@@ -114,9 +114,10 @@ def predictDecisionLevelEnsemble(classifiers, XlT, XuT, patClassIdTest, gama = 1
             
             for j in range(noClasses):
                 # get max membership of hyperboxes with class label j
-                mem_max = mem_tmp[classifiers[idClf].classId == classes[j]].max()
-                
-                out[i, j] = out[i, j] + mem_max
+                same_j_labels = mem_tmp[classifiers[idClf].classId == classes[j]]
+                if len(same_j_labels) > 0:
+                    mem_max = same_j_labels.max()                
+                    out[i, j] = out[i, j] + mem_max
         
         # compute membership value of each class over all classifiers            
         out[i, :] = out[i, :] / numClassifier

@@ -38,7 +38,10 @@ import ast
 import numpy as np
 import time
 import matplotlib
-matplotlib.use('TkAgg')
+try:
+    matplotlib.use('TkAgg')
+except:
+    pass
 
 from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
 from functionhelper.membershipcalc import memberG
