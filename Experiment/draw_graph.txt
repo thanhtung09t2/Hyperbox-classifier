@@ -1,0 +1,59 @@
+rerun: oder_presentation, online_agglo
+
+figure
+subplot(3, 1, 1)
+plot(teta, num_hyperbox, 'LineWidth',2)
+xlabel('Maximal hyperbox size')
+title('Number of hyperboxes')
+subplot(3, 1, 2)
+plot(teta, training_time, 'LineWidth',2)
+xlabel('Maximal hyperbox size')
+title('Training time')
+subplot(3, 1, 3)
+xlabel('Maximal hyperbox size')
+plot(teta, error_testing, 'LineWidth',2)
+xlabel('Maximal hyperbox size')
+title('Testing error')
+
+%Drawing agglomerative learning
+figure
+subplot(2, 2, 1)
+xlabel('Similarity threshold')
+hold on
+plot(smin, numHyperboxShortSiMeasure, '-r')
+plot(smin, numHyperboxLongSiMeasure, '--g')
+plot(smin, numHyperboxMidMaxSiMeasure, ':b', 'LineWidth',1.5)
+plot(smin, numHyperboxMidMinSiMeasure, '-.k')
+title('Number of Hyperboxes - AGGLO-2')
+legend({'Shortest Distance Measure','Longest Distance Measure','Mid-Max Distance Measure','Mid-Min Distance Measure'},'Location','northwest');
+
+subplot(2, 2, 3)
+xlabel('Similarity threshold')
+hold on
+plot(smin, errorTestingShortSiMeasure, '-r')
+plot(smin, errorTestingLongSiMeasure, '--g')
+plot(smin, errorTestingMidMaxSiMeasure, ':b', 'LineWidth',1.5)
+plot(smin, errorTestingMidMinSiMeasure, '-.k')
+title('Testing error - AGGLO-2')
+legend({'Shortest Distance Measure','Longest Distance Measure','Mid-Max Distance Measure','Mid-Min Distance Measure'},'Location','northwest');
+
+subplot(2, 2, 2)
+xlabel('Similarity threshold')
+hold on
+plot(smin, numHyperboxShortSiMeasure, '-r')
+plot(smin, numHyperboxLongSiMeasure, '--g')
+plot(smin, numHyperboxMidMaxSiMeasure, ':b', 'LineWidth',1.5)
+plot(smin, numHyperboxMidMinSiMeasure, '-.k')
+title('Number of Hyperboxes - AGGLO-SM')
+legend({'Shortest Distance Measure','Longest Distance Measure','Mid-Max Distance Measure','Mid-Min Distance Measure'},'Location','northwest');
+
+
+subplot(2, 2, 4)
+xlabel('Similarity threshold')
+hold on
+plot(smin, errorTestingShortSiMeasure, '-r')
+plot(smin, errorTestingLongSiMeasure, '--g')
+plot(smin, errorTestingMidMaxSiMeasure, ':b', 'LineWidth',1.5)
+plot(smin, errorTestingMidMinSiMeasure, '-.k')
+title('Testing error - AGGLO-SM')
+legend({'Shortest Distance Measure','Longest Distance Measure','Mid-Max Distance Measure','Mid-Min Distance Measure'},'Location','northwest');
