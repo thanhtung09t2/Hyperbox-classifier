@@ -22,11 +22,11 @@ if __name__ == '__main__':
     
     save_online_agglo_result_folder_path = root_path + '\\Experiment\\Online_Agglo_Combination\\Online_Agglo'
     save_agglo_online_result_folder_path = root_path + '\\Experiment\\Online_Agglo_Combination\\Agglo_Online'
-    save_parallel_result_folder_path = root_path + '\\Experiment\\Online_Agglo_Combination\\Parallel'
+    save_parallel_result_folder_path = root_path + '\\Experiment\\Online_Agglo_Combination\\Parallel_Comb'
     dataset_path = root_path + '\\Dataset\\train_test'
     
-    dataset_names = ['aggregation', 'circle', 'complex9', 'DiagnosticBreastCancer', 'elliptical_10_2', 'fourty', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
-    # dataset_names = ['ringnorm', 'twonorm', 'waveform']
+    # dataset_names = ['aggregation', 'circle', 'complex9', 'DiagnosticBreastCancer', 'elliptical_10_2', 'fourty', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
+    dataset_names = ['ringnorm', 'twonorm', 'waveform']
     for dt in range(len(dataset_names)):
         #try:
         print('Current dataset: ', dataset_names[dt])
@@ -92,7 +92,7 @@ if __name__ == '__main__':
             parallelCombClassifier.fit(Xtr_time_i_onl.lower, Xtr_time_i_onl.upper, Xtr_time_i_onl.label, Xtr_time_i_off.lower, Xtr_time_i_off.upper, Xtr_time_i_off.label)
             
             training_time_parallel_save = np.append(training_time_parallel_save, parallelCombClassifier.elapsed_training_time)
-            numhyperbox_parallel_save = np.append(numhyperbox_parallel_save, len(parallelCombClassifier.classId))
+            numhyperbox_parallel_save = np.append(numhyperbox_parallel_save, (len(parallelCombClassifier.onlClassifier.classId) + len(parallelCombClassifier.offClassifier.classId)))
             
             result = parallelCombClassifier.predict(Xtest, Xtest, patClassIdTest)
             if result != None:

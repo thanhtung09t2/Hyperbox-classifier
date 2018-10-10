@@ -1,0 +1,17 @@
+teta_online = teta_agglo = 0.400000, simil_thres = 0.500000, measure = short, online_training = 0.6 * fulldataset 
+No hyperboxes, Training time, Testing error,
+0,0.031235,0,
+0,0.030044,0,
+0,0.030412,0,
+0,0.029867,0,
+0,0.03119,0,
+0,0.02994,0,
+0,0.030825,0,
+0,0.030708,0,
+0,0.030156,0,
+0,0.031525,0,
+,,,
+0,0.0305902,0,Mean
+0,0.000564162,0,Std
+0,0.029867,0,Min
+0,0.031525,0,Max

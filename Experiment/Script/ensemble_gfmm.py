@@ -27,8 +27,8 @@ if __name__ == '__main__':
     save_repeate_2fold_model_result_folder_path = root_path + '\\Experiment\\Ensemble\\Repeat_2fold_Model'
     dataset_path = root_path + '\\Dataset\\train_test'
     
-    dataset_names = ['aggregation', 'circle', 'complex9', 'DiagnosticBreastCancer', 'elliptical_10_2', 'fourty', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
-    # dataset_names = ['ringnorm', 'twonorm', 'waveform']
+    # dataset_names = ['aggregation', 'circle', 'complex9', 'DiagnosticBreastCancer', 'elliptical_10_2', 'fourty', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
+    dataset_names = ['ringnorm', 'twonorm', 'waveform']
     for dt in range(len(dataset_names)):
         #try:
         print('Current dataset: ', dataset_names[dt])
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         testing_error_repeat_model_level_save = np.array([])
         
         numTestSample = Xtest.shape[0]
-        num_classifiers = 9
+        num_classifiers = 5
         num_folds = 10
         
         for test_time in range(10):
