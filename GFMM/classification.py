@@ -9,8 +9,11 @@ GFMM Predictor
 """
 
 import numpy as np
+import torch
 from functionhelper.membershipcalc import memberG
 from functionhelper.bunchdatatype import Bunch
+from functionhelper.torch_membership_calc import torch_memberG
+from functionhelper import device
 
 def predict(V, W, classId, XlT, XuT, patClassIdTest, gama = 1, oper = 'min'):
     """
@@ -41,7 +44,7 @@ def predict(V, W, classId, XlT, XuT, patClassIdTest, gama = 1, oper = 'min'):
     #initialization
     yX = XlT.shape[0]
     misclass = np.zeros(yX)
-    classes = np.unique(np.sort(classId))
+    classes = np.unique(classId)
     noClasses = classes.size
     ambiguity = np.zeros((yX, 1))
     mem = np.zeros((yX, V.shape[0]))
@@ -66,6 +69,72 @@ def predict(V, W, classId, XlT, XuT, patClassIdTest, gama = 1, oper = 'min'):
     # results
     sumamb = np.sum(ambiguity[:, 0] > 1)
     summis = np.sum(misclass).astype(np.int64)
+    
+    result = Bunch(summis = summis, misclass = misclass, sumamb = sumamb, out = out, mem = mem)
+    return result
+
+
+def torch_predict(V, W, classId, XlT, XuT, patClassIdTest, gama = 1, oper = 'min'):
+    """
+    GFMM classifier (test routine). Implemented by Pytorch
+    
+      result = predict(V,W,classId,XlT,XuT,patClassIdTest,gama,oper)
+  
+    INPUT
+      V                 Tested model hyperbox lower bounds
+      W                 Tested model hyperbox upper bounds
+      classId	          Input data (hyperbox) class labels (crisp)
+      XlT               Test data lower bounds (rows = objects, columns = features)
+      XuT               Test data upper bounds (rows = objects, columns = features)
+      patClassIdTest    Test data class labels (crisp)
+      gama              Membership function slope (default: 1)
+      oper              Membership calculation operation: 'min' or 'prod' (default: 'min')
+  
+   OUTPUT
+      result           A object with Bunch datatype containing all results as follows:
+                          + summis           Number of misclassified objects
+                          + misclass         Binary error map
+                          + sumamb           Number of objects with maximum membership in more than one class
+                          + out              Soft class memberships
+                          + mem              Hyperbox memberships
+
+    """
+    if isinstance(V, torch.Tensor) == False:
+        V = torch.cuda.FloatTensor(V)
+        W = torch.cuda.FloatTensor(W)
+        classId = torch.cuda.FloatTensor(classId)
+        XlT = torch.cuda.FloatTensor(XlT)
+        XuT = torch.cuda.FloatTensor(XuT)
+        patClassIdTest = torch.cuda.FloatTensor(patClassIdTest)
+
+    #initialization
+    yX = XlT.size(0)
+    misclass = torch.cuda.FloatTensor(torch.zeros(yX))
+    classes = torch.unique(classId)
+    noClasses = classes.size(0)
+    ambiguity = torch.cuda.FloatTensor(torch.zeros((yX, 1)))
+    mem = torch.cuda.FloatTensor(torch.zeros((yX, V.size(0))))
+    out = torch.cuda.FloatTensor(torch.zeros((yX, noClasses)))
+
+    # classifications
+    for i in range(yX):
+        mem[i, :] = torch_memberG(XlT[i, :], XuT[i, :], torch.min(V, W), torch.max(W, V), gama, oper) # calculate memberships for all hyperboxes
+        bmax = mem[i,:].max()	                                          # get max membership value
+        maxVind = torch.nonzero(mem[i,:] == bmax)[0]                         # get indexes of all hyperboxes with max membership
+        
+        for j in range(noClasses):
+            out[i, j] = mem[i, classId == classes[j]].max()            # get max memberships for each class
+        
+        ambiguity[i, :] = torch.sum(out[i, :] == bmax) 						  # number of different classes with max membership
+        
+        if bmax == 0:
+            print('zero maximum membership value')                     # this is probably bad...
+            
+        misclass[i] = ~(torch.any(classId[maxVind] == patClassIdTest[i]) | (patClassIdTest[i] == 0))
+    
+    # results
+    sumamb = torch.sum(ambiguity[:, 0] > 1)
+    summis = torch.sum(misclass)
     
     result = Bunch(summis = summis, misclass = misclass, sumamb = sumamb, out = out, mem = mem)
     return result

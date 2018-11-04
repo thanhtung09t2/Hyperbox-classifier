@@ -78,9 +78,7 @@ class KNEFMNNClassification(BaseFMNNClassifier):
                 hyperboxes = drawbox(self.V[:, 0:np.minimum(xX,3)], self.W[:, 0:np.minimum(xX,3)], drawing_canvas, color_)
                 listLines.extend(hyperboxes)
                 self.delay()
-                
-        print('Initial K =', K)
-        
+                    
         # for each input sample
         for i in range(yX):
             classOfX = patClassId[i]

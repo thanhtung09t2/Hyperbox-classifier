@@ -156,9 +156,9 @@ class Repeat2FoldModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
             bthres = bthres - delta_thres
         
         
-        self.V = np.vstack((opt_Tr.V, opt_Val.V))
-        self.W = np.vstack((opt_Tr.W, opt_Val.W))
-        self.classId = np.append(opt_Tr.classId, opt_Val.classId)
+        self.V = np.concatenate((opt_Tr.V, opt_Val.V), axis=0)
+        self.W = np.concatenate((opt_Tr.W, opt_Val.W), axis=0)
+        self.classId = np.concatenate((opt_Tr.classId, opt_Val.classId))
         
         if isDeleteContainedHyperbox == True:
             self.removeContainedHyperboxes()

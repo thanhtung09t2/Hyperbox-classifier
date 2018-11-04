@@ -28,6 +28,7 @@ if __name__ == '__main__':
     dataset_path = root_path + '\\Dataset\\train_test'
     
     # dataset_names = ['aggregation', 'circle', 'complex9', 'DiagnosticBreastCancer', 'elliptical_10_2', 'fourty', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
+    # dataset_names = ['circle', 'complex9', 'DiagnosticBreastCancer', 'glass', 'heart', 'ionosphere', 'iris', 'segmentation', 'spherical_5_2', 'spiral', 'synthetic', 'thyroid', 'wine', 'yeast', 'zelnik6']
     dataset_names = ['ringnorm', 'twonorm', 'waveform']
     for dt in range(len(dataset_names)):
         #try:
@@ -100,7 +101,7 @@ if __name__ == '__main__':
             repeat2foldDecisionLevel.fit(Xtr_time_i, Xtr_time_i, pathClassIdTr_time_i)
             
             training_time_repeat_decision_level_save = np.append(training_time_repeat_decision_level_save, repeat2foldDecisionLevel.elapsed_training_time)
-            numhyperbox_repeat_decision_level_save = np.append(numhyperbox_repeat_decision_level_save, len(repeat2foldDecisionLevel.classId))
+            numhyperbox_repeat_decision_level_save = np.append(numhyperbox_repeat_decision_level_save, repeat2foldDecisionLevel.numHyperboxes)
             
             result = repeat2foldDecisionLevel.predict(Xtest, Xtest, patClassIdTest)
             if result != None:

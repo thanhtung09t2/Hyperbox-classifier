@@ -132,11 +132,9 @@ def isOverlap(V, W, ind, classId):
         if len(indcomp) == 0:
             return False
         else:
-            testedHyperIndex = np.where(indcomp == ind)[0][0]
-            #testedHyperIndex = ind
-            # remove index of the tested hyperbox
-            #newInd = np.delete(indcomp, np.where(indcomp == ind)[0])
-            newInd = np.append(indcomp[0:testedHyperIndex], indcomp[testedHyperIndex + 1:])
+            # testedHyperIndex = np.where(indcomp == ind)[0][0]
+            # newInd = np.append(indcomp[0:testedHyperIndex], indcomp[testedHyperIndex + 1:])
+            newInd = indcomp[indcomp != ind]
 
             if len(newInd) > 0:
                 onesTemp = np.ones((len(newInd), 1))

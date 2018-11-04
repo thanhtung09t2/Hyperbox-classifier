@@ -113,9 +113,9 @@ class DecisionLevelEnsembleClassifier(BaseBatchLearningGFMM):
                         upper_valid = partitionedXtr[l].upper
                         label_valid = partitionedXtr[l].label
                     else:
-                        lower_valid = np.vstack((lower_valid, partitionedXtr[l].lower))
-                        upper_valid = np.vstack((upper_valid, partitionedXtr[l].upper))
-                        label_valid = np.append(label_valid, partitionedXtr[l].label)
+                        lower_valid = np.concatenate((lower_valid, partitionedXtr[l].lower), axis=0)
+                        upper_valid = np.concatenate((upper_valid, partitionedXtr[l].upper), axis=0)
+                        label_valid = np.concatenate((label_valid, partitionedXtr[l].label))
             
             # validate the trained model
             rest = predict(classifier_tmp.V, classifier_tmp.W, classifier_tmp.classId, lower_valid, upper_valid, label_valid, self.gamma, self.oper)

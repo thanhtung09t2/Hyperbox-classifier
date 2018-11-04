@@ -87,11 +87,11 @@ class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
                 self.cardin = predictor.cardin
                 self.clusters = predictor.clusters
             else:
-                self.V = np.vstack((self.V, predictor.V))
-                self.W = np.vstack((self.W, predictor.W))
-                self.classId = np.append(self.classId, predictor.classId)
-                self.cardin = np.append(self.cardin, predictor.cardin)
-                self.clusters = np.append(self.clusters, predictor.clusters)
+                self.V = np.concatenate((self.V, predictor.V), axis=0)
+                self.W = np.concatenate((self.W, predictor.W), axis=0)
+                self.classId = np.concatenate((self.classId, predictor.classId))
+                self.cardin = np.concatenate((self.cardin, predictor.cardin))
+                self.clusters = np.concatenate((self.clusters, predictor.clusters))
                 
             
         if isRemoveContainedHyperboxes == True:
@@ -145,9 +145,9 @@ class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
                         upper_valid = partitionedXtr[l].upper
                         label_valid = partitionedXtr[l].label
                     else:
-                        lower_valid = np.vstack((lower_valid, partitionedXtr[l].lower))
-                        upper_valid = np.vstack((upper_valid, partitionedXtr[l].upper))
-                        label_valid = np.append(label_valid, partitionedXtr[l].label)
+                        lower_valid = np.concatenate((lower_valid, partitionedXtr[l].lower), axis=0)
+                        upper_valid = np.concatenate((upper_valid, partitionedXtr[l].upper), axis=0)
+                        label_valid = np.concatenate((label_valid, partitionedXtr[l].label))
             
             # validate the trained model
             rest = predict(predictor_tmp.V, predictor_tmp.W, predictor_tmp.classId, lower_valid, upper_valid, label_valid, self.gamma, self.oper)

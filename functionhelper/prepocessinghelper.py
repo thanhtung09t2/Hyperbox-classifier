@@ -64,9 +64,9 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
         for line in f:
             nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float_, sep=' ')
             if (A.size == 0):
-                A = nums
+                A = nums.reshape(1, -1)
             else:
-                A = np.vstack((A, nums))
+                A = np.concatenate((A, nums.reshape(1, -1)), axis=0)
     
     YA, XA = A.shape
    
@@ -100,13 +100,13 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
     
             # Attach data of class k to corresponding datasets
             Xtr_tmp = X_data[idx[0:noTrain], :]
-            Xtr = np.vstack((Xtr, Xtr_tmp))
+            Xtr = np.concatenate((Xtr, Xtr_tmp), axis=0)
             patClassId_tmp = np.full(noTrain, classLabels[k], dtype=np.int16)
             patClassIdTr = np.append(patClassIdTr, patClassId_tmp)
             
             patClassId_tmp = np.full(len(idx) - noTrain, classLabels[k], dtype=np.int16)
-            Xtest = np.vstack((Xtest, X_data[idx[noTrain:len(idx)], :]))
-            patClassIdTest = np.append(patClassIdTest, patClassId_tmp)
+            Xtest = np.concatenate((Xtest, X_data[idx[noTrain:len(idx)], :]), axis=0)
+            patClassIdTest = np.concatenate((patClassIdTest, patClassId_tmp))
     else:
         if percentTr == 1:
             Xtr = X_data
@@ -143,9 +143,9 @@ def loadDatasetWithoutClassLabel(path, percentTr, isNorm = False, new_range = [0
         for line in f:
             nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float64, sep=' ')
             if (X_data.size == 0):
-                X_data = nums
+                X_data = nums.reshape(1, -1)
             else:
-                X_data = np.vstack((X_data, nums))
+                X_data = np.concatenate((X_data, nums.reshape(1, -1)), axis = 0)
 
     if isNorm:
         X_data = normalize(X_data, new_range)
@@ -274,8 +274,8 @@ def splitDatasetRndClassBasedToKPart(Xl, Xu, patClassId, k= 10, isNorm = False, 
                 label_tmp = pathClass_cl[pos[anchors[i]:anchors[i + 1]]]
                 partitionedA[i] = Bunch(lower = lower_tmp, upper = upper_tmp, label = label_tmp)
             else:
-                lower_tmp = np.vstack((partitionedA[i].lower, Xl_cl[pos[anchors[i]:anchors[i + 1]], :]))
-                upper_tmp = np.vstack((partitionedA[i].upper, Xu_cl[pos[anchors[i]:anchors[i + 1]], :]))
+                lower_tmp = np.concatenate((partitionedA[i].lower, Xl_cl[pos[anchors[i]:anchors[i + 1]], :]), axis=0)
+                upper_tmp = np.concatenate((partitionedA[i].upper, Xu_cl[pos[anchors[i]:anchors[i + 1]], :]), axis=0)
                 label_tmp = np.append(partitionedA[i].label, pathClass_cl[pos[anchors[i]:anchors[i + 1]]])
                 partitionedA[i] = Bunch(lower = lower_tmp, upper = upper_tmp, label = label_tmp)
         
@@ -332,13 +332,13 @@ def splitDatasetRndClassBasedTo2Part(Xl, Xu, patClassId, training_rate = 0.5, is
             trainingSet = Bunch(lower = Xl_cl[pos[0:pivot]], upper = Xu_cl[pos[0:pivot]], label = pathClass_cl[pos[0:pivot]])
             validSet = Bunch(lower = Xl_cl[pos[pivot:]], upper = Xu_cl[pos[pivot:]], label = pathClass_cl[pos[pivot:]])
         else:
-            lower_train = np.vstack((trainingSet.lower, Xl_cl[pos[0:pivot]]))
-            upper_train = np.vstack((trainingSet.upper, Xu_cl[pos[0:pivot]]))
+            lower_train = np.concatenate((trainingSet.lower, Xl_cl[pos[0:pivot]]), axis=0)
+            upper_train = np.concatenate((trainingSet.upper, Xu_cl[pos[0:pivot]]), axis=0)
             label_train = np.append(trainingSet.label, pathClass_cl[pos[0:pivot]])
             trainingSet = Bunch(lower = lower_train, upper = upper_train, label = label_train)
             
-            lower_valid = np.vstack((validSet.lower, Xl_cl[pos[pivot:]]))
-            upper_valid = np.vstack((validSet.upper, Xu_cl[pos[pivot:]]))
+            lower_valid = np.concatenate((validSet.lower, Xl_cl[pos[pivot:]]), axis=0)
+            upper_valid = np.concatenate((validSet.upper, Xu_cl[pos[pivot:]]), axis=0)
             label_valid = np.append(validSet.label, pathClass_cl[pos[pivot:]])
             validSet = Bunch(lower = lower_valid, upper = upper_valid, label = label_valid)
             

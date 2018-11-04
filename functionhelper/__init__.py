@@ -10,3 +10,9 @@ Initial file for the python directory
 # Copyright (c) 2018, the Hyperbox-based classifier project authors.  Please see the AUTHORS file
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
+
+import torch
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+float_def = torch.cuda.FloatTensor if  torch.cuda.is_available() else torch.float
+long_def = torch.cuda.LongTensor if torch.cuda.is_available() else torch.int64

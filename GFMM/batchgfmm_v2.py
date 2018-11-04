@@ -131,9 +131,9 @@ class BatchGFMMV2(BaseBatchLearningGFMM):
                 if self.classId[int(maxb[i, 0])] == self.classId[int(maxb[i, 1])]:
                     # calculate new coordinates of maxb(i,0)-th hyperbox by including maxb(i,1)-th box, scrap the latter and leave the rest intact
                     # agglomorate maxb(i, 0) and maxb(i, 1) by adjust maxb(i, 0), remove maxb(i, 1) by get newV from 1:maxb(i, 0) - 1, new coordinates for maxb(i, 0), maxb(i, 0) + 1:maxb(i, 1) - 1, maxb(i, 1) + 1:end
-                    newV = np.vstack((self.V[:int(maxb[i, 0])], np.minimum(self.V[int(maxb[i, 0])], self.V[int(maxb[i, 1])]), self.V[int(maxb[i, 0]) + 1:int(maxb[i, 1])], self.V[int(maxb[i, 1]) + 1:]))
-                    newW = np.vstack((self.W[:int(maxb[i, 0])], np.maximum(self.W[int(maxb[i, 0])], self.W[int(maxb[i, 1])]), self.W[int(maxb[i, 0]) + 1:int(maxb[i, 1])], self.W[int(maxb[i, 1]) + 1:]))
-                    newClassId = np.hstack((self.classId[:int(maxb[i, 1])], self.classId[int(maxb[i, 1]) + 1:]))
+                    newV = np.concatenate((self.V[:int(maxb[i, 0])], np.minimum(self.V[int(maxb[i, 0])], self.V[int(maxb[i, 1])]).reshape(1, -1), self.V[int(maxb[i, 0]) + 1:int(maxb[i, 1])], self.V[int(maxb[i, 1]) + 1:]), axis=0)
+                    newW = np.concatenate((self.W[:int(maxb[i, 0])], np.maximum(self.W[int(maxb[i, 0])], self.W[int(maxb[i, 1])]).reshape(1, -1), self.W[int(maxb[i, 0]) + 1:int(maxb[i, 1])], self.W[int(maxb[i, 1]) + 1:]), axis=0)
+                    newClassId = np.concatenate((self.classId[:int(maxb[i, 1])], self.classId[int(maxb[i, 1]) + 1:]))
                         
                     # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
                     if (not isOverlap(newV, newW, int(maxb[i, 0]), newClassId)) and (((newW[int(maxb[i, 0])] - newV[int(maxb[i, 0])]) <= self.teta).all() == True):

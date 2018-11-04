@@ -46,7 +46,7 @@ from GFMM.basegfmmclassifier import BaseGFMMClassifier
 
 class OnlineGFMM(BaseGFMMClassifier):
     
-    def __init__(self, gamma = 1, teta = 1, tMin = 1, isDraw = False, oper = 'min', isNorm = False, norm_range = [0, 1], V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int16)):
+    def __init__(self, gamma = 1, teta = 1, tMin = 1, isDraw = False, oper = 'min', isNorm = False, norm_range = [0, 1], V = np.array([], dtype=np.float64), W = np.array([], dtype=np.float64), classId = np.array([], dtype=np.int64)):
         BaseGFMMClassifier.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
         
         self.tMin = tMin
@@ -54,7 +54,6 @@ class OnlineGFMM(BaseGFMMClassifier):
         self.W = W
         self.classId = classId
         self.misclass = 1
-        
         
     def fit(self, X_l, X_u, patClassId):
         """
@@ -183,9 +182,9 @@ class OnlineGFMM(BaseGFMMClassifier):
                                
                         # if i-th sample did not fit into any existing box, create a new one
                         if not adjust:
-                            self.V = np.vstack((self.V, X_l[i]))
-                            self.W = np.vstack((self.W, X_u[i]))
-                            self.classId = np.append(self.classId, classOfX)
+                            self.V = np.concatenate((self.V, X_l[i].reshape(1, -1)), axis = 0)
+                            self.W = np.concatenate((self.W, X_u[i].reshape(1, -1)), axis = 0)
+                            self.classId = np.concatenate((self.classId, [classOfX]))
 
                             if self.isDraw:
                                 # handle drawing graph

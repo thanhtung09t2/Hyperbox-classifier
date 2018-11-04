@@ -150,9 +150,9 @@ class BatchGFMMV1(BaseBatchLearningGFMM):
                 curmaxb = maxb[0, :] # current position handling
                 
                 # calculate new coordinates of curmaxb(0)-th hyperbox by including curmaxb(1)-th box, scrap the latter and leave the rest intact
-                newV = np.vstack((self.V[0:int(curmaxb[0]), :], np.minimum(self.V[int(curmaxb[0]), :], self.V[int(curmaxb[1]), :]), self.V[int(curmaxb[0]) + 1:int(curmaxb[1]), :], self.V[int(curmaxb[1]) + 1:, :]))
-                newW = np.vstack((self.W[0:int(curmaxb[0]), :], np.maximum(self.W[int(curmaxb[0]), :], self.W[int(curmaxb[1]), :]), self.W[int(curmaxb[0]) + 1:int(curmaxb[1]), :], self.W[int(curmaxb[1]) + 1:, :]))
-                newClassId = np.hstack((self.classId[0:int(curmaxb[1])], self.classId[int(curmaxb[1]) + 1:]))
+                newV = np.concatenate((self.V[0:int(curmaxb[0]), :], np.minimum(self.V[int(curmaxb[0]), :], self.V[int(curmaxb[1]), :]).reshape(1, -1), self.V[int(curmaxb[0]) + 1:int(curmaxb[1]), :], self.V[int(curmaxb[1]) + 1:, :]), axis=0)
+                newW = np.concatenate((self.W[0:int(curmaxb[0]), :], np.maximum(self.W[int(curmaxb[0]), :], self.W[int(curmaxb[1]), :]).reshape(1, -1), self.W[int(curmaxb[0]) + 1:int(curmaxb[1]), :], self.W[int(curmaxb[1]) + 1:, :]),axis=0)
+                newClassId = np.concatenate((self.classId[0:int(curmaxb[1])], self.classId[int(curmaxb[1]) + 1:]))
                 
                 # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
                 if (not isOverlap(newV, newW, int(curmaxb[0]), newClassId)) and (((newW[int(curmaxb[0])] - newV[int(curmaxb[0])]) <= self.teta).all() == True):
