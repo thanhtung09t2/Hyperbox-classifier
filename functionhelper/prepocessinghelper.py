@@ -22,7 +22,7 @@ def normalize(A, new_range):
     OUTPUT
         Normalized dataset
     """
-    D = A.copy().astype(np.float_)
+    D = A.copy()
     n, m = D.shape
     
     for i in range(m):
@@ -59,15 +59,17 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
        patClassIdTest   Testing class labels
        
     """
-    A = np.array([], dtype=np.float_)
+    
+    lstData = []
     with open(path) as f:
         for line in f:
-            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float_, sep=' ')
-            if (A.size == 0):
-                A = nums.reshape(1, -1)
-            else:
-                A = np.concatenate((A, nums.reshape(1, -1)), axis=0)
-    
+            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float32, sep=' ').tolist()
+            lstData.append(nums)
+#            if (a.size == 0):
+#                a = nums.reshape(1, -1)
+#            else:
+#                a = np.concatenate((a, nums.reshape(1, -1)), axis=0)
+    A = np.array(lstData, dtype=np.float32)
     YA, XA = A.shape
    
     X_data = A[:, 0:XA-1]
@@ -77,19 +79,20 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
     # class labels must start from 1, class label = 0 means no label
     if classLabels.size > 1 and np.size(np.nonzero(classId_dat == 0)) > 0:
         classId_dat = classId_dat + 1
+        classLabels = classLabels + 1
 
     if isNorm:
         X_data = normalize(X_data, new_range)
     
-    Xtr = np.empty((0, XA - 1), dtype=np.float64)
-    Xtest = np.empty((0, XA - 1), dtype=np.float64)
-    
-    patClassIdTr = np.array([], dtype=np.int64)
-    patClassIdTest = np.array([], dtype=np.int64)
-    
     if percentTr != 1 and percentTr != 0:
         noClasses = classLabels.size
         
+        Xtr = np.empty((0, XA - 1), dtype=np.float32)
+        Xtest = np.empty((0, XA - 1), dtype=np.float32)
+
+        patClassIdTr = np.array([], dtype=np.int16)
+        patClassIdTest = np.array([], dtype=np.int16)
+    
         for k in range(noClasses):
             idx = np.nonzero(classId_dat == classLabels[k])[0]
             # randomly shuffle indices of elements belonging to class classLabels[k]
@@ -107,6 +110,7 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
             patClassId_tmp = np.full(len(idx) - noTrain, classLabels[k], dtype=np.int16)
             Xtest = np.concatenate((Xtest, X_data[idx[noTrain:len(idx)], :]), axis=0)
             patClassIdTest = np.concatenate((patClassIdTest, patClassId_tmp))
+        
     else:
         if percentTr == 1:
             Xtr = X_data
@@ -138,15 +142,16 @@ def loadDatasetWithoutClassLabel(path, percentTr, isNorm = False, new_range = [0
        Xtest            Testing dataset
        
     """
-    X_data = np.array([], dtype=np.float64)
+    lstData = []
     with open(path) as f:
         for line in f:
-            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float64, sep=' ')
-            if (X_data.size == 0):
-                X_data = nums.reshape(1, -1)
-            else:
-                X_data = np.concatenate((X_data, nums.reshape(1, -1)), axis = 0)
-
+            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float32, sep=' ').tolist()
+            lstData.append(nums)
+#            if (X_data.size == 0):
+#                X_data = nums.reshape(1, -1)
+#            else:
+#                X_data = np.concatenate((X_data, nums.reshape(1, -1)), axis = 0)
+    X_data = np.array(lstData, dtype=np.float32)
     if isNorm:
         X_data = normalize(X_data, new_range)
         

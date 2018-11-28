@@ -13,6 +13,9 @@ Initial file for the python directory
 
 import torch
 
+GPU_Computing_Threshold = 1000000
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 float_def = torch.cuda.FloatTensor if  torch.cuda.is_available() else torch.float
 long_def = torch.cuda.LongTensor if torch.cuda.is_available() else torch.int64
+is_Have_GPU = torch.cuda.is_available()

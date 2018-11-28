@@ -51,9 +51,10 @@ class BaseBatchLearningGFMM(BaseGFMMClassifier):
         for i in np.arange(yX - 1):
             j = i + 1
             while j < yX:
-                caseDim = hyperboxOverlapTest(self.V, self.W, i, j)
-                if len(caseDim) > 0 and self.classId[i] != self.classId[j]:
-                    self.V, self.W = hyperboxContraction(self.V, self.W, caseDim, j, i)
+                if self.classId[i] != self.classId[j]:
+                    caseDim = hyperboxOverlapTest(self.V, self.W, i, j)
+                    if len(caseDim) > 0:
+                        self.V, self.W = hyperboxContraction(self.V, self.W, caseDim, j, i)
                 
                 j = j + 1
                 

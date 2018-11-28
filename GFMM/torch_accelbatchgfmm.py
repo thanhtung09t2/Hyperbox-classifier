@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Sep 10 09:42:14 2018
+Created on November 06
 
 @author: Thanh Tung Khuat
 
     Accelerated Batch GFMM classifier (training core)
+    
+    Implemented by Pytorch
         
         AccelBatchGFMM(gamma, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range)
   
@@ -36,6 +38,7 @@ sys.path.insert(0, os.path.pardir)
 
 import ast
 import numpy as np
+import torch
 import time
 import matplotlib
 try:
@@ -45,14 +48,15 @@ except:
 
 from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
 from functionhelper.drawinghelper import drawbox
-from functionhelper.hyperboxadjustment import isOverlap
-from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
-from functionhelper.membershipcalc import asym_similarity_one_many, memberG
+from functionhelper.torch_hyperboxadjustment import torch_isOverlap
+from GFMM.torch_basegfmmclassifier import Torch_BaseGFMMClassifier
+from functionhelper.torch_membership_calc import torch_asym_similarity_one_many, torch_memberG, gpu_memberG
+from functionhelper import is_Have_GPU, GPU_Computing_Threshold
 
-class AccelBatchGFMM(BaseBatchLearningGFMM):
+class Torch_AccelBatchGFMM(Torch_BaseGFMMClassifier):
     
-    def __init__(self, gamma = 1, teta = 1, bthres = 0.5, simil = 'mid', sing = 'max', isDraw = False, oper = 'min', isNorm = True, norm_range = [0, 1], cardin = np.array([], dtype=np.int64), clusters = np.array([], dtype=object)):
-        BaseBatchLearningGFMM.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
+    def __init__(self, gamma = 1, teta = 1, bthres = 0.5, simil = 'mid', sing = 'max', isDraw = False, oper = 'min', isNorm = True, norm_range = [0, 1]):
+        Torch_BaseGFMMClassifier.__init__(self, gamma, teta, isDraw, oper, isNorm, norm_range)
         
         self.bthres = bthres
         self.simil = simil
@@ -72,14 +76,26 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
         
         if self.isNorm == True:
             X_l, X_u = self.dataPreprocessing(X_l, X_u)
+        
+        if isinstance(X_l, torch.Tensor) == False:
+            X_l = torch.from_numpy(X_l).float()
+            X_u = torch.from_numpy(X_u).float()
+            patClassId = torch.from_numpy(patClassId).long()
             
         time_start = time.perf_counter()
-         
-        self.V = X_l
-        self.W = X_u
-        self.classId = patClassId
         
-        yX, xX = X_l.shape
+        isUsingGPU = False
+        if is_Have_GPU and X_l.size(0) * X_l.size(1) >= GPU_Computing_Threshold:
+            self.V = X_l.cuda()
+            self.W = X_u.cuda()
+            self.classId = patClassId.cuda()
+            isUsingGPU = True
+        else:
+            self.V = X_l
+            self.W = X_u
+            self.classId = patClassId
+         
+        # yX, xX = X_l.shape
         
 #        if len(self.cardin) == 0 or len(self.clusters) == 0:
 #            self.cardin = np.ones(yX)
@@ -89,7 +105,7 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
         
         if self.isDraw:
             mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
-            drawing_canvas = self.initializeCanvasGraph("GFMM - AGGLO-2", xX)
+            drawing_canvas = self.initializeCanvasGraph("GFMM - AGGLO-2")
                 
             # plot initial hyperbox
             Vt, Wt = self.pcatransform()
@@ -108,14 +124,21 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
             k = 0 # input pattern index
             while k < len(self.classId):
                 if self.simil == 'short':
-                    b = memberG(self.W[k], self.V[k], self.V, self.W, self.gamma, self.oper)
+                    if isUsingGPU == False:
+                        b = torch_memberG(self.W[k], self.V[k], self.V, self.W, self.gamma, self.oper, isUsingGPU)
+                    else:
+                        b = gpu_memberG(self.W[k], self.V[k], self.V, self.W, self.gamma, self.oper)
+                        
                 elif self.simil == 'long':
-                    b = memberG(self.V[k], self.W[k], self.W, self.V, self.gamma, self.oper)
+                    if isUsingGPU == False:
+                        b = torch_memberG(self.V[k], self.W[k], self.W, self.V, self.gamma, self.oper, isUsingGPU)
+                    else:
+                        b = gpu_memberG(self.V[k], self.W[k], self.W, self.V, self.gamma, self.oper)
+                        
                 else:
-                    b = asym_similarity_one_many(self.V[k], self.W[k], self.V, self.W, self.gamma, self.sing, self.oper)
+                    b = torch_asym_similarity_one_many(self.V[k], self.W[k], self.V, self.W, self.gamma, self.sing, self.oper, isUsingGPU)
                 
-                indB = np.argsort(b)[::-1]
-                sortB = b[indB]
+                sortB, indB = torch.sort(b, descending=True)
                 
                 maxB = sortB[sortB >= self.bthres]	# apply membership threshold
                 
@@ -131,7 +154,7 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
                     #idx_same_classes = np.where(self.classId[indmaxB] == self.classId[k])[0] # np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0)
                     
                     #maxB = np.delete(maxB, idx_other_classes)
-                    idx_same_classes = np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0)
+                    idx_same_classes = (self.classId[indmaxB] == self.classId[k]) | (self.classId[indmaxB] == 0)
                     maxB = maxB[idx_same_classes]
                     # leaving memeberships to unlabelled boxes
                     indmaxB = indmaxB[idx_same_classes]
@@ -139,21 +162,30 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
 #                    if len(maxB) > 30: # trim the set of memberships to speedup processing
 #                        maxB = maxB[0:30]
 #                        indmaxB = indmaxB[0:30]
-                
-                    pairewise_maxb = np.concatenate((np.minimum(k, indmaxB)[:, np.newaxis], np.maximum(k,indmaxB)[:, np.newaxis], maxB[:, np.newaxis]), axis=1)
+                    if isUsingGPU == True:
+                        kMat = torch.cuda.LongTensor([k]).expand(indmaxB.size(0))
+                    else:
+                        kMat = torch.LongTensor([k]).expand(indmaxB.size(0))
+                    
+                    pairewise_maxb = torch.cat((torch.min(kMat, indmaxB).reshape(-1, 1).float(), torch.max(kMat,indmaxB).reshape(-1, 1).float(), maxB.reshape(-1, 1)), dim=1)
 
-                    for i in range(pairewise_maxb.shape[0]):
+                    if isUsingGPU:
+                        els = torch.arange(pairewise_maxb.size(0)).cuda()
+                    else:
+                        els = torch.arange(pairewise_maxb.size(0))
+                        
+                    for i in els:
                         # calculate new coordinates of k-th hyperbox by including pairewise_maxb(i,1)-th box, scrap the latter and leave the rest intact
                         # agglomorate pairewise_maxb(i, 0) and pairewise_maxb(i, 1) by adjusting pairewise_maxb(i, 0)
                         # remove pairewise_maxb(i, 1) by getting newV from 1 -> pairewise_maxb(i, 0) - 1, new coordinates for pairewise_maxb(i, 0), from pairewise_maxb(i, 0) + 1 -> pairewise_maxb(i, 1) - 1, pairewise_maxb(i, 1) + 1 -> end
                         
-                        newV = np.concatenate((self.V[:int(pairewise_maxb[i, 0])], np.minimum(self.V[int(pairewise_maxb[i, 0])], self.V[int(pairewise_maxb[i, 1])]).reshape(1, -1), self.V[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.V[int(pairewise_maxb[i, 1]) + 1:]), axis=0)
-                        newW = np.concatenate((self.W[:int(pairewise_maxb[i, 0])], np.maximum(self.W[int(pairewise_maxb[i, 0])], self.W[int(pairewise_maxb[i, 1])]).reshape(1, -1), self.W[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.W[int(pairewise_maxb[i, 1]) + 1:]), axis=0)
-                        newClassId = np.concatenate((self.classId[:int(pairewise_maxb[i, 1])], self.classId[int(pairewise_maxb[i, 1]) + 1:]))
+                        newV = torch.cat((self.V[:pairewise_maxb[i, 0].long()], torch.min(self.V[pairewise_maxb[i, 0].long()], self.V[pairewise_maxb[i, 1].long()]).reshape(1, -1), self.V[pairewise_maxb[i, 0].long() + 1:pairewise_maxb[i, 1].long()], self.V[pairewise_maxb[i, 1].long() + 1:]), dim=0)
+                        newW = torch.cat((self.W[:pairewise_maxb[i, 0].long()], torch.max(self.W[pairewise_maxb[i, 0].long()], self.W[pairewise_maxb[i, 1].long()]).reshape(1, -1), self.W[pairewise_maxb[i, 0].long() + 1:pairewise_maxb[i, 1].long()], self.W[pairewise_maxb[i, 1].long() + 1:]), dim=0)
+                        newClassId = torch.cat((self.classId[:pairewise_maxb[i, 1].long()], self.classId[pairewise_maxb[i, 1].long() + 1:]))
                         
                         # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
                         # position of adjustment is pairewise_maxb[i, 0] in new bounds
-                        if (not isOverlap(newV, newW, int(pairewise_maxb[i, 0]), newClassId)) and (((newW[int(pairewise_maxb[i, 0])] - newV[int(pairewise_maxb[i, 0])]) <= self.teta).all() == True):
+                        if (not torch_isOverlap(newV, newW, pairewise_maxb[i, 0].long(), newClassId)) and (((newW[pairewise_maxb[i, 0].long()] - newV[pairewise_maxb[i, 0].long()]) <= self.teta).all() == True):
                             self.V = newV
                             self.W = newW
                             self.classId = newClassId
@@ -173,26 +205,32 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
                                 
                             if self.isDraw:
                                 try:
-                                    hyperboxes[int(pairewise_maxb[i, 1])].remove()
-                                    hyperboxes[int(pairewise_maxb[i, 0])].remove()
+                                    hyperboxes[pairewise_maxb[i, 1].long()].remove()
+                                    hyperboxes[pairewise_maxb[i, 0].long()].remove()
                                 except:
                                     print("No remove old hyperbox")
                                 
                                 Vt, Wt = self.pcatransform()
                                 
                                 box_color = 'k'
-                                if self.classId[int(pairewise_maxb[i, 0])] < len(mark_col):
-                                    box_color = mark_col[self.classId[int(pairewise_maxb[i, 0])]]
+                                if self.classId[pairewise_maxb[i, 0].long()] < len(mark_col):
+                                    box_color = mark_col[self.classId[pairewise_maxb[i, 0].long()]]
                                 
-                                box = drawbox(np.asmatrix(Vt[int(pairewise_maxb[i, 0])]), np.asmatrix(Wt[int(pairewise_maxb[i, 0])]), drawing_canvas, box_color)
+                                box = drawbox(np.asmatrix(Vt[pairewise_maxb[i, 0].long()]), np.asmatrix(Wt[pairewise_maxb[i, 0].long()]), drawing_canvas, box_color)
                                 self.delay()
-                                hyperboxes[int(pairewise_maxb[i, 0])] = box[0]
-                                hyperboxes.remove(hyperboxes[int(pairewise_maxb[i, 1])])
+                                hyperboxes[pairewise_maxb[i, 0].long()] = box[0]
+                                hyperboxes.remove(hyperboxes[pairewise_maxb[i, 1].long()])
                                 
                             break # if hyperbox adjusted there's no need to look at other hyperboxes
                             
                         
                     k = k + 1
+                    
+            if isTraining == True and isUsingGPU == True and self.V.size(0) * self.V.size(1) < GPU_Computing_Threshold:
+                isUsingGPU = False
+                self.V = self.V.cpu()
+                self.W = self.W.cpu()
+                self.classId = self.classId.cpu()
         
         time_end = time.perf_counter()
         self.elapsed_training_time = time_end - time_start
@@ -280,14 +318,14 @@ if __name__ == '__main__':
         percent_Training = float(sys.argv[3])
         Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(dataset_file, percent_Training, False)
     
-    classifier = AccelBatchGFMM(gamma, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range)
+    classifier = Torch_AccelBatchGFMM(gamma, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range)
     classifier.fit(Xtr, Xtr, patClassIdTr)
     
     # Testing
     print("-- Testing --")
-    result = classifier.predict(Xtest, Xtest, patClassIdTest)
+    result = classifier.predict_torch(Xtest, Xtest, patClassIdTest)
     if result != None:
         print("Number of wrong predicted samples = ", result.summis)
         numTestSample = Xtest.shape[0]
         print("Error Rate = ", np.round(result.summis / numTestSample * 100, 2), "%")
-        print("Training Time = ", classifier.elapsed_training_time)
+        print("Training time = ", classifier.elapsed_training_time)
