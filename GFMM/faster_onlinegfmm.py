@@ -134,9 +134,9 @@ class OnlineGFMM(BaseGFMMClassifier):
                     self.delay()
 
                 if self.V.size == 0:   # no model provided - starting from scratch
-                    self.V = np.array([X_l[0]]).astype(np.float32)
-                    self.W = np.array([X_u[0]]).astype(np.float32)
-                    self.classId = np.array([patClassId[0]], dtype=np.int16)
+                    self.V = np.array([X_l[0]])
+                    self.W = np.array([X_u[0]])
+                    self.classId = np.array([patClassId[0]])
 
                     if self.isDraw == True:
                         # draw hyperbox

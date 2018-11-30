@@ -224,7 +224,7 @@ class Torch_AccelBatchGFMM(Torch_BaseGFMMClassifier):
                             break # if hyperbox adjusted there's no need to look at other hyperboxes
                             
                         
-                    k = k + 1
+                k = k + 1
                     
             if isTraining == True and isUsingGPU == True and self.V.size(0) * self.V.size(1) < GPU_Computing_Threshold:
                 isUsingGPU = False

@@ -89,7 +89,7 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
         
         if self.isDraw:
             mark_col = np.array(['r', 'g', 'b', 'y', 'c', 'm', 'k'])
-            drawing_canvas = self.initializeCanvasGraph("GFMM - AGGLO-2", xX)
+            drawing_canvas = self.initializeCanvasGraph("GFMM - Faster AGGLO-2", xX)
                 
             # plot initial hyperbox
             Vt, Wt = self.pcatransform()
@@ -107,40 +107,30 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
             
             k = 0 # input pattern index
             while k < len(self.classId):
+                idx_same_classes = np.logical_or(self.classId == self.classId[k], self.classId == 0)
+                idx_same_classes[k] = False # remove element in the position k
+                idex = np.arange(len(self.classId))
+                idex = idex[idx_same_classes] # keep the indices of elements retained
+                V_same_class = self.V[idx_same_classes]
+                W_same_class = self.W[idx_same_classes]
+                
                 if self.simil == 'short':
-                    b = memberG(self.W[k], self.V[k], self.V, self.W, self.gamma, self.oper)
+                    b = memberG(self.W[k], self.V[k], V_same_class, W_same_class, self.gamma, self.oper)
                 elif self.simil == 'long':
-                    b = memberG(self.V[k], self.W[k], self.W, self.V, self.gamma, self.oper)
+                    b = memberG(self.V[k], self.W[k], W_same_class, V_same_class, self.gamma, self.oper)
                 else:
-                    b = asym_similarity_one_many(self.V[k], self.W[k], self.V, self.W, self.gamma, self.sing, self.oper)
+                    b = asym_similarity_one_many(self.V[k], self.W[k], V_same_class, W_same_class, self.gamma, self.sing, self.oper)
                 
                 indB = np.argsort(b)[::-1]
+                idex = idex[indB]
                 sortB = b[indB]
                 
                 maxB = sortB[sortB >= self.bthres]	# apply membership threshold
                 
                 if len(maxB) > 0:
-                    indmaxB = indB[sortB >= self.bthres]
-                    # remove self-membership
-                    maxB = maxB[indmaxB != k]
-                    indmaxB = indmaxB[indmaxB != k]
+                    idexmax = idex[sortB >= self.bthres]
                     
-                    # remove memberships to boxes from other classes
-                    # idx_other_classes = np.where(np.logical_and(self.classId[indmaxB] != self.classId[k], self.classId[indmaxB] != 0))
-                    #idx_same_classes = np.where(np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0))
-                    #idx_same_classes = np.where(self.classId[indmaxB] == self.classId[k])[0] # np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0)
-                    
-                    #maxB = np.delete(maxB, idx_other_classes)
-                    idx_same_classes = np.logical_or(self.classId[indmaxB] == self.classId[k], self.classId[indmaxB] == 0)
-                    maxB = maxB[idx_same_classes]
-                    # leaving memeberships to unlabelled boxes
-                    indmaxB = indmaxB[idx_same_classes]
-                    
-#                    if len(maxB) > 30: # trim the set of memberships to speedup processing
-#                        maxB = maxB[0:30]
-#                        indmaxB = indmaxB[0:30]
-                
-                    pairewise_maxb = np.concatenate((np.minimum(k, indmaxB)[:, np.newaxis], np.maximum(k,indmaxB)[:, np.newaxis], maxB[:, np.newaxis]), axis=1)
+                    pairewise_maxb = np.concatenate((np.minimum(k, idexmax)[:, np.newaxis], np.maximum(k,idexmax)[:, np.newaxis], maxB[:, np.newaxis]), axis=1)
 
                     for i in range(pairewise_maxb.shape[0]):
                         # calculate new coordinates of k-th hyperbox by including pairewise_maxb(i,1)-th box, scrap the latter and leave the rest intact
@@ -153,7 +143,7 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
                         
                         # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
                         # position of adjustment is pairewise_maxb[i, 0] in new bounds
-                        if (not isOverlap(newV, newW, int(pairewise_maxb[i, 0]), newClassId)) and (((newW[int(pairewise_maxb[i, 0])] - newV[int(pairewise_maxb[i, 0])]) <= self.teta).all() == True):
+                        if (not isOverlap(newV, newW, pairewise_maxb[i, 0].astype(np.int64), newClassId)) and (((newW[pairewise_maxb[i, 0].astype(np.int64)] - newV[pairewise_maxb[i, 0].astype(np.int64)]) <= self.teta).all() == True):
                             self.V = newV
                             self.W = newW
                             self.classId = newClassId
