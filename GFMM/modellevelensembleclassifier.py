@@ -37,8 +37,8 @@ import ast
 from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
 from GFMM.accelbatchgfmm import AccelBatchGFMM
 from GFMM.classification import predict
-from functionhelper.prepocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
-from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.preprocessinghelper import splitDatasetRndToKPart, splitDatasetRndClassBasedToKPart
+from functionhelper.preprocessinghelper import loadDataset, string_to_boolean
 
 class ModelLevelEnsembleClassifier(BaseBatchLearningGFMM):
     

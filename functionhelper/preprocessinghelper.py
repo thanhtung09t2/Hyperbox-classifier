@@ -9,7 +9,10 @@ Preprocessing functions helper
 """
 
 import numpy as np
+import itertools
 from functionhelper.bunchdatatype import Bunch
+
+dtype = np.float64
 
 def normalize(A, new_range):
     """
@@ -63,13 +66,13 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
     lstData = []
     with open(path) as f:
         for line in f:
-            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float32, sep=' ').tolist()
+            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=dtype, sep=' ').tolist()
             lstData.append(nums)
 #            if (a.size == 0):
 #                a = nums.reshape(1, -1)
 #            else:
 #                a = np.concatenate((a, nums.reshape(1, -1)), axis=0)
-    A = np.array(lstData, dtype=np.float32)
+    A = np.array(lstData, dtype=dtype)
     YA, XA = A.shape
    
     X_data = A[:, 0:XA-1]
@@ -87,11 +90,11 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
     if percentTr != 1 and percentTr != 0:
         noClasses = classLabels.size
         
-        Xtr = np.empty((0, XA - 1), dtype=np.float32)
-        Xtest = np.empty((0, XA - 1), dtype=np.float32)
+        Xtr = np.empty((0, XA - 1), dtype=dtype)
+        Xtest = np.empty((0, XA - 1), dtype=dtype)
 
-        patClassIdTr = np.array([], dtype=np.int16)
-        patClassIdTest = np.array([], dtype=np.int16)
+        patClassIdTr = np.array([], dtype=np.int64)
+        patClassIdTest = np.array([], dtype=np.int64)
     
         for k in range(noClasses):
             idx = np.nonzero(classId_dat == classLabels[k])[0]
@@ -104,10 +107,10 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
             # Attach data of class k to corresponding datasets
             Xtr_tmp = X_data[idx[0:noTrain], :]
             Xtr = np.concatenate((Xtr, Xtr_tmp), axis=0)
-            patClassId_tmp = np.full(noTrain, classLabels[k], dtype=np.int16)
+            patClassId_tmp = np.full(noTrain, classLabels[k], dtype=np.int64)
             patClassIdTr = np.append(patClassIdTr, patClassId_tmp)
             
-            patClassId_tmp = np.full(len(idx) - noTrain, classLabels[k], dtype=np.int16)
+            patClassId_tmp = np.full(len(idx) - noTrain, classLabels[k], dtype=np.int64)
             Xtest = np.concatenate((Xtest, X_data[idx[noTrain:len(idx)], :]), axis=0)
             patClassIdTest = np.concatenate((patClassIdTest, patClassId_tmp))
         
@@ -145,13 +148,13 @@ def loadDatasetWithoutClassLabel(path, percentTr, isNorm = False, new_range = [0
     lstData = []
     with open(path) as f:
         for line in f:
-            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float32, sep=' ').tolist()
+            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=dtype, sep=' ').tolist()
             lstData.append(nums)
 #            if (X_data.size == 0):
 #                X_data = nums.reshape(1, -1)
 #            else:
 #                X_data = np.concatenate((X_data, nums.reshape(1, -1)), axis = 0)
-    X_data = np.array(lstData, dtype=np.float32)
+    X_data = np.array(lstData, dtype=dtype)
     if isNorm:
         X_data = normalize(X_data, new_range)
         
@@ -390,3 +393,68 @@ def splitDatasetRndTo2Part(Xl, Xu, patClassId, training_rate = 0.5, isNorm = Fal
     validSet = Bunch(lower = Xl[pos[pivot:]], upper = Xu[pos[pivot:]], label = patClassId[pos[pivot:]])
     
     return (trainingSet, validSet)
+
+
+def read_file_in_chunks_group_by_label(filePath, chunk_index, chunk_size):
+    """
+    Read data in the file with path filePath in chunks and group data by labels in each chunk
+    
+        INPUT
+            filePath        The path to the file containing data in the hard disk (including file name and its extension)
+            chunk_index     The index of chunk needs to read
+            chunk_size      The number of data lines in each chunk (except for the last chunk with fewer lines than common maybe) 
+            
+        OUTPUT
+            results         A dictionary contains the needed chunk, where key is label and value is a list of data corresponding to each key
+    """
+    with open(filePath) as f:
+        start = chunk_index * chunk_size
+        stop = (chunk_index + 1) * chunk_size
+        dic_results = {}
+        for line in itertools.islice(f, start, stop):
+            if line != None:
+                num_data = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float64, sep=' ').tolist()
+                lb = num_data[-1]
+                if lb in dic_results:
+                    dic_results[lb].data.append(num_data[0:-1])
+                    dic_results[lb].label.append(lb)
+                else:
+                    dic_results[lb] = Bunch(data = [num_data[0:-1]], label=[lb])
+        
+        results = None
+        for key in dic_results:
+            if results == None:
+                results = {}
+            results[key] = Bunch(data = np.asarray(dic_results[key].data, dtype=dtype), label = np.asarray(dic_results[key].label, dtype=np.int64))
+        
+        return results
+    
+def read_file_in_chunks(filePath, chunk_index, chunk_size):
+    """
+        Read data in the file with path filePath in chunks and does not group data by label
+    
+        INPUT
+            filePath        The path to the file containing data in the hard disk (including file name and its extension)
+            chunk_index     The index of chunk needs to read
+            chunk_size      The number of data lines in each chunk (except for the last chunk with fewer lines than common maybe) 
+            
+        OUTPUT
+                            A bunch datatype includes the list of data and labels (properties: data, label)
+    """
+    with open(filePath) as f:
+        start = chunk_index * chunk_size
+        stop = (chunk_index + 1) * chunk_size
+        returned_res = None
+        result = []
+        for line in itertools.islice(f, start, stop):
+            if line != None and len(line) > 0:
+                num_data = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float64, sep=' ').tolist()
+                result.append(num_data)
+        
+        if len(result) > 0:
+            input_data = np.array(result, dtype=dtype) # convert data from list to numpy array
+            X_data = input_data[:, 0:-1]
+            label = input_data[:, -1]        
+            returned_res = Bunch(data=X_data, label=label)
+            
+        return returned_res

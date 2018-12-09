@@ -43,7 +43,7 @@ try:
 except:
     pass
 
-from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.preprocessinghelper import loadDataset, string_to_boolean
 from functionhelper.drawinghelper import drawbox
 from functionhelper.hyperboxadjustment import isOverlap
 from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
@@ -208,7 +208,7 @@ if __name__ == '__main__':
     arg9: + operation used to compute membership value: 'min' or 'prod' (default: 'min')
     arg10: + do normalization of datasets or not? True: Normilize, False: No normalize (default: True)
     arg11: + range of input values after normalization (default: [0, 1])   
-    arg12: + Use 'min' or 'max' (default) memberhsip in case of assymetric similarity measure (simil='mid')
+    arg12: + Use 'min' or 'max' (default) membership in case of assymetric similarity measure (simil='mid')
     """
     # Init default parameters
     if len(sys.argv) < 5:

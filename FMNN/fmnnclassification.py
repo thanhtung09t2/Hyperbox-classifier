@@ -31,7 +31,7 @@ matplotlib.use('TkAgg')
 from functionhelper.membershipcalc import simpsonMembership
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
 from functionhelper.drawinghelper import drawbox
-from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.preprocessinghelper import loadDataset, string_to_boolean
 from functionhelper.basefmnnclassifier import BaseFMNNClassifier
 
 class FMNNClassification(BaseFMNNClassifier):

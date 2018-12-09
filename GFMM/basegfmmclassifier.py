@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from GFMM.classification import predict
 from functionhelper.matrixhelper import delete_const_dims, pca_transform
-from functionhelper.prepocessinghelper import normalize
+from functionhelper.preprocessinghelper import normalize
 
 class BaseGFMMClassifier(object):
 

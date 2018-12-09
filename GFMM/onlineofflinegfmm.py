@@ -44,7 +44,7 @@ try:
 except:
     pass
 
-from functionhelper.prepocessinghelper import loadDataset, string_to_boolean, splitDatasetRndClassBasedTo2Part, splitDatasetRndTo2Part
+from functionhelper.preprocessinghelper import loadDataset, string_to_boolean, splitDatasetRndClassBasedTo2Part, splitDatasetRndTo2Part
 from functionhelper.matrixhelper import delete_const_dims
 from functionhelper.bunchdatatype import Bunch
 from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM

@@ -40,7 +40,7 @@ from functionhelper.torch_hyperboxadjustment import torch_hyperboxOverlapTest, t
 from GFMM.classification import torch_predict
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest
 from functionhelper.drawinghelper import drawbox
-from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.preprocessinghelper import loadDataset, string_to_boolean
 from GFMM.torch_basegfmmclassifier import Torch_BaseGFMMClassifier
 
 class Torch_OnlineGFMM(Torch_BaseGFMMClassifier):

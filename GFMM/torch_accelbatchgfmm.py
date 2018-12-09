@@ -46,7 +46,7 @@ try:
 except:
     pass
 
-from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.preprocessinghelper import loadDataset, string_to_boolean
 from functionhelper.drawinghelper import drawbox
 from functionhelper.torch_hyperboxadjustment import torch_isOverlap
 from GFMM.torch_basegfmmclassifier import Torch_BaseGFMMClassifier

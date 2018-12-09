@@ -46,7 +46,7 @@ try:
 except:
     pass
 
-from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.preprocessinghelper import loadDataset, string_to_boolean
 from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
 from GFMM.onlinegfmm import OnlineGFMM
 from GFMM.accelbatchgfmm import AccelBatchGFMM

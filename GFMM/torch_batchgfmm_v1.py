@@ -47,7 +47,7 @@ from GFMM.torch_basegfmmclassifier import Torch_BaseGFMMClassifier
 from functionhelper.torch_membership_calc import torch_memberG, gpu_memberG
 from functionhelper.drawinghelper import drawbox
 from functionhelper.torch_hyperboxadjustment import torch_isOverlap
-from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.preprocessinghelper import loadDataset, string_to_boolean
 from functionhelper import is_Have_GPU, GPU_Computing_Threshold
 
 class Torch_BatchGFMMV1(Torch_BaseGFMMClassifier):

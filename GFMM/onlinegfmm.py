@@ -41,7 +41,7 @@ from functionhelper.membershipcalc import memberG
 from functionhelper.hyperboxadjustment import hyperboxOverlapTest, hyperboxContraction
 from GFMM.classification import predict
 from functionhelper.drawinghelper import drawbox
-from functionhelper.prepocessinghelper import loadDataset, string_to_boolean
+from functionhelper.preprocessinghelper import loadDataset, string_to_boolean
 from GFMM.basegfmmclassifier import BaseGFMMClassifier
 
 class OnlineGFMM(BaseGFMMClassifier):

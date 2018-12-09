@@ -14,7 +14,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from GFMM.classification import torch_predict
 from functionhelper.matrixhelper import delete_const_dims, pca_transform
-from functionhelper.prepocessinghelper import normalize
+from functionhelper.preprocessinghelper import normalize
 from functionhelper import device, float_def, long_def, GPU_Computing_Threshold, is_Have_GPU
 
 class Torch_BaseGFMMClassifier(object):
