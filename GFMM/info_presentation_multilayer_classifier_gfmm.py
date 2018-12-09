@@ -18,11 +18,9 @@ import time
 import multiprocessing
 from functionhelper.bunchdatatype import Bunch
 from functionhelper.membershipcalc import memberG, asym_similarity_one_many
-from functionhelper.preprocessinghelper import read_file_in_chunks_group_by_label, read_file_in_chunks, string_to_boolean
+from functionhelper.preprocessinghelper import read_file_in_chunks_group_by_label, read_file_in_chunks, string_to_boolean, loadDataset
 from functionhelper.hyperboxadjustment import isOverlap
 from concurrent.futures import ProcessPoolExecutor, as_completed
-
-chunk_size = 100 # the size of each chunk read from the dataset in hard disk
 
 def get_num_cpu_cores():
     num_cores = multiprocessing.cpu_count()
@@ -518,12 +516,18 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
         
         # delete hyperboxes contained in other hyperboxes and update the centroids of larger hyperboxes
         self.removeContainedHyperboxes_UpdateCentroid()
-        print("Before pruning: ", self.V.shape[0])
+        numBoxes_before_pruning = len(self.classId)
+        
         if isPruning:
             self.pruningHandling(valFile_Path, chunk_size, minPatternsPerBox)
-            print("After pruning: ", self.V.shape[0])
+            numBoxes_after_pruning = len(self.classId)
         
         self.phase1_elapsed_training_time = time.perf_counter() - time_start
+        
+        print("No. hyperboxes before pruning: ", numBoxes_before_pruning)
+        if isPruning:
+            print("No. hyperboxes after pruning: ", numBoxes_after_pruning)
+            
         print('Phase 1 running time =', self.phase1_elapsed_training_time)
         
         return self
@@ -616,8 +620,8 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                 k = k + 1
         
         self.phase2_elapsed_training_time = time.perf_counter() - time_start
+        print("No. hyperboxes after phase 2: ", len(self.classId))
         print('Phase 2 running time =', self.phase2_elapsed_training_time)
-        print("After phase 2: ", self.V.shape[0])
     
     
     def predict(self, Xl, Xu):
@@ -659,11 +663,11 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                     # at least one pair of hyperboxes with different class => compare the centroid, and classify the input to the hyperboxes with nearest distance to the input pattern
                     centroid_input_pat = (Xl[i] + Xu[i]) / 2
                     id_min = maxVind[0]
-                    min_dist = np.linalg.norm(self.centroid[id_min], centroid_input_pat)
+                    min_dist = np.linalg.norm(self.centroid[id_min] - centroid_input_pat)
     
                     for j in range(1, len(maxVind)):
                         id_j = maxVind[j]
-                        dist_j = np.linalg.norm(self.centroid[id_j], centroid_input_pat)
+                        dist_j = np.linalg.norm(self.centroid[id_j] - centroid_input_pat)
                         
                         if dist_j < min_dist or (dist_j == min_dist and self.no_pat[id_j] > self.no_pat[id_min]):
                             id_min = id_j
@@ -696,6 +700,8 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                                   + summis           Number of misclassified objects
                                   + misclass         Binary error map
                                   + mem              Hyperbox memberships
+                                  + use_centroid     The number of patterns must use centroid to make prediction
+                                  + use_centroid_wrong  The number of patterns uses centroid to mak prediction but still get wrong result
     
         """
     
@@ -703,7 +709,8 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
         yX = XlT.shape[0]
         misclass = np.zeros(yX)
         mem = np.zeros((yX, self.V.shape[0]))
-    
+        numPatUsingCentroid = 0
+        numPatUsingCentroidWrong = 0
         # classifications
         for i in range(yX):
             mem[i, :] = memberG(XlT[i, :], XuT[i, :], self.V, self.W, self.gamma, self.oper) # calculate memberships for all hyperboxes
@@ -729,13 +736,14 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                         misclass[i] = True
                 else:
                     # at least one pair of hyperboxes with different class => compare the centroid
+                    numPatUsingCentroid = numPatUsingCentroid + 1
                     centroid_input_pat = (XlT[i] + XuT[i]) / 2
                     id_min = maxVind[0]
-                    min_dist = np.linalg.norm(self.centroid[id_min], centroid_input_pat)
+                    min_dist = np.linalg.norm(self.centroid[id_min] - centroid_input_pat)
     
                     for j in range(1, len(maxVind)):
                         id_j = maxVind[j]
-                        dist_j = np.linalg.norm(self.centroid[id_j], centroid_input_pat)
+                        dist_j = np.linalg.norm(self.centroid[id_j] - centroid_input_pat)
                         
                         if dist_j < min_dist or (dist_j == min_dist and self.no_pat[id_j] > self.no_pat[id_min]):
                             id_min = id_j
@@ -743,12 +751,13 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                             
                     if self.classId[id_min] != patClassIdTest[i] and patClassIdTest[i] != 0:
                         misclass[i] = True
+                        numPatUsingCentroidWrong = numPatUsingCentroidWrong + 1
                     else:
                         misclass[i] = False
         # results
         summis = np.sum(misclass).astype(np.int64)
     
-        result = Bunch(summis = summis, misclass = misclass, mem = mem)
+        result = Bunch(summis = summis, misclass = misclass, mem = mem, use_centroid=numPatUsingCentroid, use_centroid_wrong=numPatUsingCentroidWrong)
         
         return result
     
@@ -777,8 +786,9 @@ if __name__ == '__main__':
     training_file = sys.argv[1]
     testing_file = sys.argv[2]
     validation_file = sys.argv[3]
+    print(validation_file)
     
-    if not validation_file == True:
+    if (not validation_file) == True:
         # empty validation file
         print('no pruning')
         isPruning = False
@@ -790,7 +800,7 @@ if __name__ == '__main__':
         chunk_size = 1000000
     else:
         chunk_size = int(sys.argv[4])
-        
+    print('chunk_size =', chunk_size)
     if len(sys.argv) < 6:
         type_chunk = 0
     else:
@@ -847,6 +857,17 @@ if __name__ == '__main__':
     
     classifier.granular_phase_one_classifier(training_file, chunk_size, type_chunk, isPruning, validation_file, minSamples)
     classifier.granular_phase_two_classifier(isAllowedOverlap)
+    
+    # Read testing file
+    _, Xtest, _, patClassIdTest = loadDataset(testing_file, 0, False)
+    result_testing = classifier.predict_test(Xtest, Xtest, patClassIdTest)
+    if result_testing != None:
+        numTestSample = Xtest.shape[0]
+        print("Number of testing samples = ", numTestSample)
+        print("Number of wrong predicted samples = ", result_testing.summis)
+        print("Error Rate = ", np.round(result_testing.summis / numTestSample * 100, 2), "%")
+        print("No. samples use centroid for prediction = ", result_testing.use_centroid)
+        print("No. samples use centroid but wrong prediction = ", result_testing.use_centroid_wrong)
     
         
     
