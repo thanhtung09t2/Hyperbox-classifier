@@ -1,41 +1,36 @@
-% Ref to Fukunaga, K. 1990. Introduction to Statistical Pattern Recognition, 2nd edition. Boston: Academic Press
-% Two-class dataset with Gaussian distribution. Minimum Bayes error = 10%
-% Class 1: mu = (0,...,0), sigma = (1,...,1)
-% Class 2: mu = (2.56,0,...,0), sigma = (1,...,1)
-clear;
-D = 64; % Number of dimension
-%N_tr = [10000, 50000, 100000, 500000, 1000000, 5000000, 10000000]; % Number of training samples
-N_tr = [10000, 50000, 100000, 500000, 1000000, 5000000]; % Number of training samples
+D = 2; % Two dimensions
+N_tr = [10000, 50000, 100000, 500000, 1000000, 5000000, 10000000]; % Number of training samples
 N_val = 10000; % Number of validation samples
 N_test = 100000; % Number of testing samples
-
-%pre_file_training_name = ["10K", "50K", "100K", "500K", "1M", "5M", "10M"];
-pre_file_training_name = ["10K", "50K", "100K", "500K", "1M", "5M"];
-
+pre_file_training_name = ["10K", "50K", "100K", "500K", "1M", "5M", "10M"];
 for i = 1:size(N_tr, 2)
-    training_file_name(1, i) = 'N' + pre_file_training_name(1, i) + '-D-' + string(D) + '-C-2_train.dat';
+    training_file_name(1, i) = 'Nonli' + pre_file_training_name(1, i) + '-D-' + string(D) + '-C-2_train.dat';
 end
 
-testing_file_name = 'N' + string(N_test) + '-D-' + string(D) + '-C-2_test.dat';
-val_file_name = 'N' + string(N_val) + '-D-' + string(D) + '-C-2_val.dat';
-para_file_name = 'N' + string(N_val) + '-D-' + string(D) + '-C-2_para.dat';
-% Specific a covariance matrix
-SIGMA = zeros(D, D);
-for i = 1:D
-    SIGMA(i, i) = 1;
-end
+testing_file_name = 'Nonli' + string(N_test) + '-D-' + string(D) + '-C-2_test.dat';
+val_file_name = 'Nonli' + string(N_val) + '-D-' + string(D) + '-C-2_val.dat';
+para_file_name = 'Nonli' + string(N_val) + '-D-' + string(D) + '-C-2_para.dat';
 
-Mu_1 = zeros(1, D);
-Mu_2 = zeros(1, D);
-Mu_2(1,1) = 2.56;
+Mu_1 = [-2, 1.5];
+Mu_2 = [1.5, 1];
+Mu_3 = [-1.5, 3];
+Mu_4 = [1.5, 2.5];
+
+sigma_1 = [0.5, 0.05; 0.05, 0.4];
+sigma_2 = [0.5, 0.05; 0.05, 0.3];
+sigma_3 = [0.5, 0; 0, 0.5];
+sigma_4 = [0.5, 0.05; 0.05, 0.2];
+
 training_class = {};
 min_training = [];
 max_training = [];
 % Generate bivariate normal distributions with specified means for training
 % data
 for i = 1:size(N_tr, 2)
-    training_class{i}{1} = mvnrnd(Mu_1, SIGMA, N_tr(1, i) / 2);
-    training_class{i}{2} = mvnrnd(Mu_2, SIGMA, N_tr(1, i) / 2);
+    training_class{i}{1} = mvnrnd(Mu_1, sigma_1, N_tr(1, i) / 4);
+    training_class{i}{1} = [training_class{i}{1}; mvnrnd(Mu_2, sigma_2, N_tr(1, i) / 4)];
+    training_class{i}{2} = mvnrnd(Mu_3, sigma_3, N_tr(1, i) / 4);
+    training_class{i}{2} = [training_class{i}{2}; mvnrnd(Mu_4, sigma_4, N_tr(1, i) / 4)];
 
     for j = 1:D
         min_training(i, j) = min(min(training_class{i}{1}(:, j)), min(training_class{i}{2}(:, j)));
@@ -51,8 +46,10 @@ val_class = {};
 min_val = [];
 max_val = [];
 
-val_class{1} = mvnrnd(Mu_1, SIGMA, N_val / 2);
-val_class{2} = mvnrnd(Mu_2, SIGMA, N_val / 2);
+val_class{1} = mvnrnd(Mu_1, sigma_1, N_val / 4);
+val_class{1} = [val_class{1}; mvnrnd(Mu_2, sigma_2, N_val / 4)];
+val_class{2} = mvnrnd(Mu_3, sigma_3, N_val / 4);
+val_class{2} = [val_class{2}; mvnrnd(Mu_4, sigma_4, N_val / 4)];
 
 for i = 1:D
     min_val(1, i) = min(min(val_class{1}(:, i)), min(val_class{2}(:, i)));
@@ -64,8 +61,10 @@ test_class = {};
 min_test = [];
 max_test = [];
 
-test_class{1} = mvnrnd(Mu_1, SIGMA, N_test / 2);
-test_class{2} = mvnrnd(Mu_2, SIGMA, N_test / 2);
+test_class{1} = mvnrnd(Mu_1, sigma_1, N_test / 4);
+test_class{1} = [test_class{1}; mvnrnd(Mu_2, sigma_2, N_test / 4)];
+test_class{2} = mvnrnd(Mu_3, sigma_3, N_test / 4);
+test_class{2} = [test_class{2}; mvnrnd(Mu_4, sigma_4, N_test / 4)];
 
 for i = 1:D
     min_test(1, i) = min(min(test_class{1}(:, i)), min(test_class{2}(:, i)));
@@ -148,12 +147,12 @@ para = [maxValRange; minValRange];
 dlmwrite(para_file_name, para);
     
 % Visualization of training data 10K samples
+figure;
+hold on;
 if D == 2
     plot(training_class{1}{1}(:, 1),training_class{1}{1}(:, 2),'b*');
-    hold on;
     plot(training_class{1}{2}(:, 1),training_class{1}{2}(:, 2),'r+');
 elseif D == 3
     plot3(training_class{1}{1}(:, 1),training_class{1}{1}(:, 2), training_class{1}{1}(:, 3), 'b*');
-    hold on;
     plot3(training_class{1}{2}(:, 1),training_class{1}{2}(:, 2), training_class{1}{2}(:, 3), 'r+');
 end

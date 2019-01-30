@@ -1,5 +1,5 @@
 N_sample = 10000;
-numClasses = 4;
+numClasses = 5;
 thresValStep = 0;
 xCor = 0;
 yCor = 0;
