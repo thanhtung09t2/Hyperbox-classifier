@@ -9,6 +9,8 @@ Hyperbox adjustment handling: overlap testing, hyperbox contraction
 """
 import numpy as np
 
+alpha = 0.000001
+
 def hyperboxOverlapTest(V, W, ind, testInd):
     """
     Hyperbox overlap test
@@ -26,6 +28,10 @@ def hyperboxOverlapTest(V, W, ind, testInd):
 
     """
     dim = np.array([])
+    
+    if (V[ind] > W[ind]).any() == True:
+        return dim
+    
     xW = W.shape[1]
     
     condWiWk = W[ind, :] - W[testInd, :] > 0
@@ -94,18 +100,18 @@ def hyperboxContraction(V1, W1, newCD, testedInd, ind):
     W = W1.copy()
     if newCD[0] == 1:
         W[ind, newCD[1]] = (V[testedInd, newCD[1]] + W[ind, newCD[1]]) / 2
-        V[testedInd, newCD[1]] = W[ind, newCD[1]]
+        V[testedInd, newCD[1]] = W[ind, newCD[1]] + alpha
     elif newCD[0] == 2:
         V[ind, newCD[1]] = (W[testedInd, newCD[1]] + V[ind, newCD[1]]) / 2
-        W[testedInd, newCD[1]] = V[ind, newCD[1]]
+        W[testedInd, newCD[1]] = V[ind, newCD[1]] - alpha
     elif newCD[0] == 31:
-        V[ind, newCD[1]] = W[testedInd, newCD[1]]
+        V[ind, newCD[1]] = W[testedInd, newCD[1]] + alpha
     elif newCD[0] == 32:
-        W[ind, newCD[1]] = V[testedInd, newCD[1]]
+        W[ind, newCD[1]] = V[testedInd, newCD[1]] - alpha
     elif newCD[0] == 41:
-        W[testedInd, newCD[1]] = V[ind, newCD[1]]
+        W[testedInd, newCD[1]] = V[ind, newCD[1]] - alpha
     elif newCD[0] == 42:
-        V[testedInd, newCD[1]] = W[ind, newCD[1]]
+        V[testedInd, newCD[1]] = W[ind, newCD[1]] + alpha
     
     return (V, W)
 
@@ -162,6 +168,57 @@ def isOverlap(V, W, ind, classId):
             else:
                 return False
             
+def modifiedIsOverlap(V, W, ind, classId):
+    """
+    Checking overlap between hyperbox ind and remaning hyperboxes (1 vs many)
+    Only do overlap testing with hyperboxes belonging to other classes
+    
+    INPUT
+        V           Hyperbox lower bounds
+        W           Hyperbox upper bounds
+        ind         Index of the hyperbox to be checked for overlap
+        classId     Class labels of hyperboxes
+        
+    OUTPUT
+        False - no overlap,  True - overlap
+    """
+    if (V[ind] > W[ind]).any() == True:
+        return False
+    else:
+        indcomp = np.nonzero((W >= V).all(axis = 1))[0] 	# examine only hyperboxes w/o missing dimensions, meaning that in each dimension upper bound is larger than lowerbound
+        
+        if len(indcomp) == 0:
+            return False
+        else:
+            class_indcomp = classId[indcomp]
+            newInd = indcomp[class_indcomp != classId[ind]] # get index of hyperbox representing different classes
+            
+            if len(newInd) > 0:
+                onesTemp = np.ones((len(newInd), 1))
+                condWiWk = (onesTemp * W[ind] - W[newInd]) > 0
+                condViVk = (onesTemp * V[ind] - V[newInd]) > 0
+                condWkVi = (W[newInd] - onesTemp * V[ind]) > 0
+                condWiVk = (onesTemp * W[ind] - V[newInd]) > 0
+                
+                #print(condWiWk.shape)
+                
+                c1 = ~condWiWk & ~condViVk & condWiVk
+                c2 = condWiWk & condViVk & condWkVi
+                c3 = condWiWk & ~condViVk
+                c4 = ~condWiWk & condViVk
+                
+                c = c1 + c2 + c3 + c4
+                
+                ad = c.all(axis = 1)
+                #print("Ad = ", np.nonzero(ad)[0].size)
+                ind2 = newInd[ad]
+                
+                ovresult = len(ind2) > 0
+                    
+                return ovresult
+            else:
+                return False
+    
             
 def improvedHyperboxOverlapTest(V, W, ind, testInd, Xh):
     """

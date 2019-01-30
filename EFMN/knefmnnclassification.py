@@ -116,7 +116,7 @@ class KNEFMNNClassification(BaseFMNNClassifier):
                     self.delay()
 
             else:
-                idSameClassOfX = np.where(self.classId == classOfX)[0]
+                idSameClassOfX = np.nonzero(self.classId == classOfX)[0]
                 # Find all hyperboxes same class with indexOfX
                 V1 = self.V[idSameClassOfX]
                 

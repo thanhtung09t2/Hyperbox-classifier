@@ -5,6 +5,7 @@ Created on Mon Dec  3 17:27:46 2018
 @author: Thanh Tung Khuat
 
 Implementation of information representation based multi-layer classifier using GFMM
+This implementation is integrated with missing value handling
 
 Note: Currently, all samples in the dataset must be normalized to the range of [0, 1] before using this class
 
@@ -20,14 +21,15 @@ import multiprocessing
 from functionhelper.bunchdatatype import Bunch
 from functionhelper.membershipcalc import memberG, asym_similarity_one_many
 from functionhelper.preprocessinghelper import read_file_in_chunks_group_by_label, read_file_in_chunks, string_to_boolean, loadDataset
-from functionhelper.hyperboxadjustment import isOverlap, hyperboxOverlapTest, modifiedIsOverlap, hyperboxContraction
+from functionhelper.hyperboxadjustment import hyperboxOverlapTest, modifiedIsOverlap, hyperboxContraction
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 def get_num_cpu_cores():
-    num_cores = multiprocessing.cpu_count()
-    if num_cores >= 4:
-        num_cores = num_cores - 2
-    return num_cores
+    #num_cores = multiprocessing.cpu_count()
+    #if num_cores >= 4:
+        #num_cores = num_cores - 2
+    #return num_cores
+    return 4
 
 class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
     
@@ -72,7 +74,7 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                 no_Pats = np.array([1])
                 centroid = np.array([(X_l[i] + X_u[i]) / 2])
             else:
-                b = memberG(X_l[i], X_u[i], V, W, self.gamma, self.oper)
+                b = memberG(X_l[i], X_u[i], np.minimum(V, W), np.maximum(W, V), self.gamma, self.oper)
                     
                 index = np.argsort(b)[::-1]
                 bSort = b[index];
@@ -149,7 +151,7 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                     id_range = np.arange(len(classId))
                     id_processing = id_range[id_lb_sameX]
 
-                    b = memberG(X_l[i], X_u[i], V_sameX, W_sameX, self.gamma, self.oper)
+                    b = memberG(X_l[i], X_u[i], np.minimum(V_sameX, W_sameX), np.maximum(W_sameX, V_sameX), self.gamma, self.oper)
                     index = np.argsort(b)[::-1]
                     bSort = b[index]
                 
@@ -224,6 +226,8 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                         X_l = values.data[(chunksize * i) : (chunksize * (i + 1))]
                         X_u = values.data[(chunksize * i) : (chunksize * (i + 1))]
                         patClassId = values.label[(chunksize * i) : (chunksize * (i + 1))]
+                        X_l = np.where(np.isnan(X_l), 1, X_l)
+                        X_u = np.where(np.isnan(X_u), 0, X_u)
                 
                         futures.append(executor.submit(self.homogeneous_hyperbox_expansion, X_l, X_u, patClassId, boxes[i]))
                         
@@ -265,6 +269,8 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                 X_l = lst_chunk_data.data[(chunksize * i) : (chunksize * (i + 1))]
                 X_u = lst_chunk_data.data[(chunksize * i) : (chunksize * (i + 1))]
                 patClassId = lst_chunk_data.label[(chunksize * i) : (chunksize * (i + 1))]
+                X_l = np.where(np.isnan(X_l), 1, X_l)
+                X_u = np.where(np.isnan(X_u), 0, X_u)
                
                 futures.append(executor.submit(self.heterogeneous_hyperbox_expansion, X_l, X_u, patClassId, lst_current_hyperboxes[i]))
                         
@@ -294,7 +300,7 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                 V_same = self.V[id_hyperbox_same_label]
                 W_same = self.W[id_hyperbox_same_label]
                 
-                memValue = memberG(self.V[i], self.W[i], V_same, W_same, self.gamma, self.oper)
+                memValue = memberG(self.V[i], self.W[i], np.minimum(V_same, W_same), np.maximum(W_same, V_same), self.gamma, self.oper)
                 equal_one_index = memValue == 1
                 
                 if np.sum(equal_one_index) > 0:
@@ -357,7 +363,7 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
         mem = np.zeros((yX, self.V.shape[0]))
         # classifications
         for i in range(yX):
-            mem[i, :] = memberG(XlT[i, :], XuT[i, :], self.V, self.W, self.gamma, self.oper) # calculate memberships for all hyperboxes
+            mem[i, :] = memberG(XlT[i, :], XuT[i, :], np.minimum(self.V, self.W), np.maximum(self.W, self.V), self.gamma, self.oper) # calculate memberships for all hyperboxes
             bmax = mem[i,:].max()	                                          # get max membership value
             maxVind = np.nonzero(mem[i,:] == bmax)[0]                         # get indexes of all hyperboxes with max membership
             
@@ -432,8 +438,11 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                 if chunk_data != None:
                     chunk_id = chunk_id + 1
                     
+                    X_l = np.where(np.isnan(chunk_data.data), 1, chunk_data.data)
+                    X_u = np.where(np.isnan(chunk_data.data), 0, chunk_data.data)
+                
                     # carried validation
-                    no_predicted_samples_hyperboxes = self.predict_val(chunk_data.data, chunk_data.data, chunk_data.label, no_predicted_samples_hyperboxes)
+                    no_predicted_samples_hyperboxes = self.predict_val(X_l, X_u, chunk_data.label, no_predicted_samples_hyperboxes)
                 else:
                     break
             
@@ -573,110 +582,7 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
             file_object_save.write('Running time before pruning = %f \n' % self.training_time_before_pruning)
         
         return self
-    
-    
-#    def granular_phase_two_classifier(self, isAllowedOverlap = False):
-#        """
-#            Phase 2 in the classifier: using agglomerative learning to aggregate smaller hyperboxes with the same class
-#            
-#                granular_phase_two_classifier(isAllowedOverlap)
-#                
-#                INPUT
-#                    isAllowedOverlap        + True: the aggregated hyperboxes are allowed to overlap with hyperboxes represented other classes
-#                                            + False: no overlap among hyperboxes allowed
-#                
-#                OUTPUT
-#                    V, W, classId, centroid, no_pat are adjusted                                          
-#        """
-#        yX, xX = self.V.shape
-#        time_start = time.perf_counter()
-#        # training
-#        isTraining = True
-#        while isTraining:
-#            isTraining = False
-#            
-#            k = 0 # input pattern index
-#            while k < len(self.classId):
-#                idx_same_classes = np.logical_or(self.classId == self.classId[k], self.classId == 0)
-#                idx_same_classes[k] = False # remove element in the position k
-#                idex = np.arange(len(self.classId))
-#                idex = idex[idx_same_classes] # keep the indices of elements retained
-#                V_same_class = self.V[idx_same_classes]
-#                W_same_class = self.W[idx_same_classes]
-#                
-#                if self.simil_type == 'short':
-#                    b = memberG(self.W[k], self.V[k], V_same_class, W_same_class, self.gamma, self.oper)
-#                elif self.simil_type == 'long':
-#                    b = memberG(self.V[k], self.W[k], W_same_class, V_same_class, self.gamma, self.oper)
-#                else:
-#                    b = asym_similarity_one_many(self.V[k], self.W[k], V_same_class, W_same_class, self.gamma, self.oper_asym, self.oper)
-#                
-#                indB = np.argsort(b)[::-1]
-#                idex = idex[indB]
-#                sortB = b[indB]
-#                
-#                maxB = sortB[sortB >= self.simil_thres]	# apply membership threshold
-#                
-#                if len(maxB) > 0:
-#                    idexmax = idex[sortB >= self.simil_thres]
-#                    
-#                    pairewise_maxb = np.concatenate((np.minimum(k, idexmax)[:, np.newaxis], np.maximum(k,idexmax)[:, np.newaxis], maxB[:, np.newaxis]), axis=1)
-#
-#                    for i in range(pairewise_maxb.shape[0]):
-#                        # calculate new coordinates of k-th hyperbox by including pairewise_maxb(i,1)-th box, scrap the latter and leave the rest intact
-#                        # agglomorate pairewise_maxb(i, 0) and pairewise_maxb(i, 1) by adjusting pairewise_maxb(i, 0)
-#                        # remove pairewise_maxb(i, 1) by getting newV from 1 -> pairewise_maxb(i, 0) - 1, new coordinates for pairewise_maxb(i, 0), from pairewise_maxb(i, 0) + 1 -> pairewise_maxb(i, 1) - 1, pairewise_maxb(i, 1) + 1 -> end
-#                        ind_hyperbox_1 = int(pairewise_maxb[i, 0])
-#                        ind_hyperbox_2 = int(pairewise_maxb[i, 1])
-#                        newV = np.concatenate((self.V[:ind_hyperbox_1], np.minimum(self.V[ind_hyperbox_1], self.V[ind_hyperbox_2]).reshape(1, -1), self.V[ind_hyperbox_1 + 1:ind_hyperbox_2], self.V[ind_hyperbox_2 + 1:]), axis=0)
-#                        newW = np.concatenate((self.W[:ind_hyperbox_1], np.maximum(self.W[ind_hyperbox_1], self.W[ind_hyperbox_2]).reshape(1, -1), self.W[ind_hyperbox_1 + 1:ind_hyperbox_2], self.W[ind_hyperbox_2 + 1:]), axis=0)
-#                        newClassId = np.concatenate((self.classId[:ind_hyperbox_2], self.classId[ind_hyperbox_2 + 1:]))
-#                       
-##                        index_remain = np.ones(len(self.classId)).astype(np.bool)
-##                        index_remain[ind_hyperbox_2] = False
-##                        newV = self.V[index_remain]
-##                        newW = self.W[index_remain]
-##                        newClassId = self.classId[index_remain]
-##                        if ind_hyperbox_1 < ind_hyperbox_2:
-##                            tmp_row = ind_hyperbox_1
-##                        else:
-##                            tmp_row = ind_hyperbox_1 - 1
-##                        newV[tmp_row] = np.minimum(self.V[ind_hyperbox_1], self.V[ind_hyperbox_2])
-##                        newW[tmp_row] = np.maximum(self.W[ind_hyperbox_1], self.W[ind_hyperbox_2])
-##                        
-#                        # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
-#                        # position of adjustment is pairewise_maxb[i, 0] in new bounds
-#                        no_overlap = True
-#                        if isAllowedOverlap == False:
-#                            no_overlap = not isOverlap(newV, newW, pairewise_maxb[i, 0].astype(np.int64), newClassId)
-#                        
-#                        if no_overlap and (((newW[pairewise_maxb[i, 0].astype(np.int64)] - newV[pairewise_maxb[i, 0].astype(np.int64)]) <= self.teta_agglo).all() == True):
-#                            self.V = newV
-#                            self.W = newW
-#                            self.classId = newClassId
-#                            
-#                            # merge centroids and tune the number of patterns contained in the newly aggregated hyperbox, delete data of the eliminated hyperbox
-#                            self.centroid[ind_hyperbox_1] = (self.no_pat[ind_hyperbox_1] * self.centroid[ind_hyperbox_1] + self.no_pat[ind_hyperbox_2] * self.centroid[ind_hyperbox_2]) / (self.no_pat[ind_hyperbox_1] + self.no_pat[ind_hyperbox_2])
-#                            # delete centroid of hyperbox ind_hyperbox_2
-#                            self.centroid = np.concatenate((self.centroid[:ind_hyperbox_2], self.centroid[ind_hyperbox_2 + 1:]), axis=0)
-#                            
-#                            self.no_pat[ind_hyperbox_1] = self.no_pat[ind_hyperbox_1] + self.no_pat[ind_hyperbox_2]
-#                            self.no_pat = np.concatenate((self.no_pat[:ind_hyperbox_2], self.no_pat[ind_hyperbox_2 + 1:]))
-#                          
-#                            isTraining = True
-#                            
-#                            if k != pairewise_maxb[i, 0]: # position pairewise_maxb[i, 1] (also k) is removed, so next step should start from pairewise_maxb[i, 1]
-#                                k = k - 1
-#                                
-#                            break # if hyperbox adjusted there's no need to look at other hyperboxes
-#                            
-#                        
-#                k = k + 1
-#        
-#        self.phase2_elapsed_training_time = time.perf_counter() - time_start
-#        print("No. hyperboxes after phase 2: ", len(self.classId))
-#        print('Phase 2 running time =', self.phase2_elapsed_training_time)
-    
+       
     
     def granular_phase_two_classifier(self, XlT, XuT, patClassIdTest, file_object_save=None):
         """
@@ -717,7 +623,7 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                             id_range = np.arange(len(classId))
                             id_processing = id_range[id_lb_sameX]
         
-                            b = memberG(self.V[i], self.W[i], V_sameX, W_sameX, self.gamma)
+                            b = memberG(self.V[i], self.W[i], np.minimum(V_sameX, W_sameX), np.maximum(W_sameX, V_sameX), self.gamma)
                             index = np.argsort(b)[::-1]
                             bSort = b[index]
                         
@@ -828,7 +734,7 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
         
         # classifications
         for i in range(yX):
-            mem[i, :] = memberG(Xl[i, :], Xu[i, :], self.V, self.W, self.gamma, self.oper) # calculate memberships for all hyperboxes
+            mem[i, :] = memberG(Xl[i, :], Xu[i, :], np.minimum(self.V, self.W), np.maximum(self.W, self.V), self.gamma, self.oper) # calculate memberships for all hyperboxes
             bmax = mem[i,:].max()	                                          # get max membership value
             maxVind = np.nonzero(mem[i,:] == bmax)[0]                         # get indexes of all hyperboxes with max membership
             
@@ -896,7 +802,7 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
         numPatUsingCentroidWrong = 0
         # classifications
         for i in range(yX):
-            mem[i, :] = memberG(XlT[i, :], XuT[i, :], self.V, self.W, self.gamma, self.oper) # calculate memberships for all hyperboxes
+            mem[i, :] = memberG(XlT[i, :], XuT[i, :], np.minimum(self.V, self.W), np.maximum(self.W, self.V), self.gamma, self.oper) # calculate memberships for all hyperboxes
             bmax = mem[i,:].max()	                                          # get max membership value
             maxVind = np.nonzero(mem[i,:] == bmax)[0]                         # get indexes of all hyperboxes with max membership
             
@@ -1022,6 +928,10 @@ if __name__ == '__main__':
     
     # Read testing file
     _, Xtest, _, patClassIdTest = loadDataset(testing_file, 0, False)
+    Xtest_lo = Xtest.copy()
+    Xtest_up = Xtest.copy()
+    Xtest_lo = np.where(np.isnan(Xtest_lo), 1, Xtest_lo)
+    Xtest_up = np.where(np.isnan(Xtest_up), 0, Xtest_up)
     
     file_object_save = open(pathFileSaveData, "w") 
     
@@ -1030,25 +940,13 @@ if __name__ == '__main__':
     
         classifier = Info_Presentation_Multi_Layer_Classifier_GFMM(teta = teta_list, gamma = gamma, simil_thres = simil_thres, oper = oper)
         
-        classifier.granular_phase_one_classifier(training_file, chunk_size, type_chunk, isPruning, validation_file, accuracyPerBox, Xtest, Xtest, patClassIdTest, file_object_save)
+        classifier.granular_phase_one_classifier(training_file, chunk_size, type_chunk, isPruning, validation_file, accuracyPerBox, Xtest_lo, Xtest_up, patClassIdTest, file_object_save)
         
         if len(classifier.classId) > 0:
-            classifier.granular_phase_two_classifier(Xtest, Xtest, patClassIdTest, file_object_save)          
+            classifier.granular_phase_two_classifier(Xtest_lo, Xtest_up, patClassIdTest, file_object_save)          
         else:
             print("All hyperboxes are prunned")
         
     file_object_save.close()
     print("Finish")
-        
     
-    
-        
-        
-        
-        
-        
-        
-        
-
-
-

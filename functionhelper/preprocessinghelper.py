@@ -14,13 +14,14 @@ from functionhelper.bunchdatatype import Bunch
 
 dtype = np.float64
 
-def normalize(A, new_range):
+def normalize(A, new_range, old_range = None):
     """
     Normalize the input dataset
     
     INPUT
         A           Original dataset (numpy array) [rows are samples, cols are features]
         new_range   The range of data after normalizing
+        old_range   The old range of data before normalizing
    
     OUTPUT
         Normalized dataset
@@ -30,22 +31,66 @@ def normalize(A, new_range):
     
     for i in range(m):
         v = D[:, i]
-        minv = v.min()
-        maxv = v.max()
+        if old_range is None:
+            minv = np.nanmin(v)
+            maxv = np.nanmax(v)
+        else:
+            minv = old_range[0]
+            maxv = old_range[1]
         
         if minv == maxv:
             v = np.ones(n) * 0.5;
-        else:
+        else:      
             v = new_range[0] + (new_range[1] - new_range[0]) * (v - minv) / (maxv - minv)
         
         D[:, i] = v;
     
     return D
 
+def replaceMissingValue(Xdata, handling_type = 0):
+    """
+        Missing value handling by replacing it by another value based on the handling_type parameter
+        
+            handling_type = 0: Keep nan
+                            1: Replace with mean of that feature
+                            2: Replace with median of that feature
+                            3: Padding zero numbers
+            Xdata:      a matrix of input data
+            
+            return: Xdata was handled
+    """
+    num_features = Xdata.shape[1]
+    
+    if handling_type == 1:
+        mean_feature = np.nanmean(Xdata, axis=0)
+        returned_X = Xdata.copy()
+        
+        for i in range(num_features):
+            returned_X[:, i] = np.where(np.isnan(Xdata[:, i]), mean_feature[i], Xdata[:, i])
+                  
+    elif handling_type == 2:
+        median_feature = np.nanmedian(Xdata, axis=0)
+        returned_X = Xdata.copy()
+        
+        for i in range(num_features):
+            returned_X[:, i] = np.where(np.isnan(Xdata[:, i]), median_feature[i], Xdata[:, i])
+             
+    elif handling_type == 3:
+        returned_X = Xdata.copy()
+        
+        for i in range(num_features):
+            returned_X[:, i] = np.where(np.isnan(Xdata[:, i]), 0, Xdata[:, i])
+             
+    else:
+        returned_X = Xdata
+    
+    return returned_X
+    
 
-def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
+def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1], old_range = None, class_col = -1):
     """
     Load file containing dataset and convert data in the file to training and testing datasets. Class labels are located in the last column in the file
+    Note: Missing value in the input file must be question sign ?
     
         Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(path, percentTr, True, [0, 1])
     
@@ -54,6 +99,9 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
        percentTr        the percentage of data used for training (0 <= percentTr <= 1)
        isNorm           identify whether normalizing datasets or not, True => Normalized
        new_range        new range of datasets after normalization
+       old_range        the range of original datasets before normalization (all features use the same range)
+       class_col        -1: the class label is the last column in the dataset
+                        otherwise: the class label is the first column in the dataset
 
     OUTPUT
        Xtr              Training dataset
@@ -66,17 +114,124 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
     lstData = []
     with open(path) as f:
         for line in f:
-            nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=dtype, sep=' ').tolist()
-            lstData.append(nums)
+            nums = np.fromstring(line.rstrip('\n').replace(',', ' ').replace('?', 'nan'), dtype=dtype, sep=' ').tolist()
+            if len(nums) > 0:
+                lstData.append(nums)
 #            if (a.size == 0):
 #                a = nums.reshape(1, -1)
 #            else:
 #                a = np.concatenate((a, nums.reshape(1, -1)), axis=0)
     A = np.array(lstData, dtype=dtype)
     YA, XA = A.shape
-   
-    X_data = A[:, 0:XA-1]
-    classId_dat = A[:, -1];
+    
+    if class_col == -1:
+        X_data = A[:, 0:XA-1]
+        classId_dat = A[:, -1]
+    else:
+        # class label is the first column
+        X_data = A[:, 1:]
+        classId_dat = A[:, 0]
+        
+    classLabels = np.unique(classId_dat)
+    
+    # class labels must start from 1, class label = 0 means no label
+    if classLabels.size > 1 and np.size(np.nonzero(classId_dat == 0)) > 0:
+        classId_dat = classId_dat + 1
+        classLabels = classLabels + 1
+
+    if isNorm:
+        X_data = normalize(X_data, new_range, old_range)
+    
+    if percentTr != 1 and percentTr != 0:
+        noClasses = classLabels.size
+        
+        Xtr = np.empty((0, XA - 1), dtype=dtype)
+        Xtest = np.empty((0, XA - 1), dtype=dtype)
+
+        patClassIdTr = np.array([], dtype=np.int64)
+        patClassIdTest = np.array([], dtype=np.int64)
+    
+        for k in range(noClasses):
+            idx = np.nonzero(classId_dat == classLabels[k])[0]
+            # randomly shuffle indices of elements belonging to class classLabels[k]
+            if percentTr != 1 and percentTr != 0:
+                idx = idx[np.random.permutation(len(idx))] 
+    
+            noTrain = int(len(idx) * percentTr + 0.5)
+    
+            # Attach data of class k to corresponding datasets
+            Xtr_tmp = X_data[idx[0:noTrain], :]
+            Xtr = np.concatenate((Xtr, Xtr_tmp), axis=0)
+            patClassId_tmp = np.full(noTrain, classLabels[k], dtype=np.int64)
+            patClassIdTr = np.append(patClassIdTr, patClassId_tmp)
+            
+            patClassId_tmp = np.full(len(idx) - noTrain, classLabels[k], dtype=np.int64)
+            Xtest = np.concatenate((Xtest, X_data[idx[noTrain:len(idx)], :]), axis=0)
+            patClassIdTest = np.concatenate((patClassIdTest, patClassId_tmp))
+        
+    else:
+        if percentTr == 1:
+            Xtr = X_data
+            patClassIdTr = np.array(classId_dat, dtype=np.int64)
+            Xtest = np.array([])
+            patClassIdTest = np.array([])
+        else:
+            Xtr = np.array([])
+            patClassIdTr = np.array([])
+            Xtest = X_data
+            patClassIdTest = np.array(classId_dat, dtype=np.int64)
+        
+    return (Xtr, Xtest, patClassIdTr, patClassIdTest)
+
+def loadDatasetWithMissingValueHandling(path, percentTr, isNorm = False, new_range = [0, 1], missing_handling_type = 0, class_col = -1):
+    """
+    Load file containing dataset and convert data in the file to training and testing datasets. Class labels are located in the last column in the file
+    Note: Missing value in the input file must be question sign ?
+    
+        Xtr, Xtest, patClassIdTr, patClassIdTest = loadDataset(path, percentTr, True, [0, 1])
+    
+    INPUT
+       path             the path to the data file (including file name)
+       percentTr        the percentage of data used for training (0 <= percentTr <= 1)
+       isNorm           identify whether normalizing datasets or not, True => Normalized
+       new_range        new range of datasets after normalization
+       missing_handling_type        the way of handling missing values:
+                                    + 0: Keep nan
+                                    + 1: Replace with mean of that feature
+                                    + 2: Replace with median of that feature
+                                    + 3: Padding zero numbers
+       class_col        -1: the class label is the last column in the dataset
+                        otherwise: the class label is the first column in the dataset
+
+    OUTPUT
+       Xtr              Training dataset
+       Xtest            Testing dataset
+       patClassIdTr     Training class labels
+       patClassIdTest   Testing class labels
+       
+    """
+    
+    lstData = []
+    with open(path) as f:
+        for line in f:
+            nums = np.fromstring(line.rstrip('\n').replace(',', ' ').replace('?', 'nan'), dtype=dtype, sep=' ').tolist()
+            if len(nums) > 0:
+                lstData.append(nums)
+#            if (a.size == 0):
+#                a = nums.reshape(1, -1)
+#            else:
+#                a = np.concatenate((a, nums.reshape(1, -1)), axis=0)
+    A = np.array(lstData, dtype=dtype)
+    YA, XA = A.shape
+    
+    if class_col == -1:
+        X_data = A[:, 0:XA-1]
+        classId_dat = A[:, -1]
+    else:
+        # class label is the first column
+        X_data = A[:, 1:]
+        classId_dat = A[:, 0]
+        
     classLabels = np.unique(classId_dat)
     
     # class labels must start from 1, class label = 0 means no label
@@ -86,6 +241,8 @@ def loadDataset(path, percentTr, isNorm = False, new_range = [0, 1]):
 
     if isNorm:
         X_data = normalize(X_data, new_range)
+        
+    X_data = replaceMissingValue(X_data, missing_handling_type)
     
     if percentTr != 1 and percentTr != 0:
         noClasses = classLabels.size
@@ -149,7 +306,8 @@ def loadDatasetWithoutClassLabel(path, percentTr, isNorm = False, new_range = [0
     with open(path) as f:
         for line in f:
             nums = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=dtype, sep=' ').tolist()
-            lstData.append(nums)
+            if len(nums) > 0:
+                lstData.append(nums)
 #            if (X_data.size == 0):
 #                X_data = nums.reshape(1, -1)
 #            else:
@@ -413,7 +571,7 @@ def read_file_in_chunks_group_by_label(filePath, chunk_index, chunk_size):
         dic_results = {}
         for line in itertools.islice(f, start, stop):
             if line != None:
-                num_data = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float64, sep=' ').tolist()
+                num_data = np.fromstring(line.rstrip('\n').replace(',', ' ').replace('?', 'nan'), dtype=np.float64, sep=' ').tolist()
                 lb = num_data[-1]
                 if lb in dic_results:
                     dic_results[lb].data.append(num_data[0:-1])
@@ -448,7 +606,7 @@ def read_file_in_chunks(filePath, chunk_index, chunk_size):
         result = []
         for line in itertools.islice(f, start, stop):
             if line != None and len(line) > 0:
-                num_data = np.fromstring(line.rstrip('\n').replace(',', ' '), dtype=np.float64, sep=' ').tolist()
+                num_data = np.fromstring(line.rstrip('\n').replace(',', ' ').replace('?', 'nan'), dtype=np.float64, sep=' ').tolist()
                 result.append(num_data)
         
         if len(result) > 0:

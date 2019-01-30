@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Dec  3 17:27:46 2018
+Created on Mon Dec 31 16:28:37 2018
 
 @author: Thanh Tung Khuat
 
@@ -8,6 +8,7 @@ Implementation of information representation based multi-layer classifier using 
 
 Note: Currently, all samples in the dataset must be normalized to the range of [0, 1] before using this class
 
+The validation process and testing process in this code are run in parallel
 """
 import sys, os
 sys.path.insert(0, os.path.pardir)
@@ -22,6 +23,7 @@ from functionhelper.membershipcalc import memberG, asym_similarity_one_many
 from functionhelper.preprocessinghelper import read_file_in_chunks_group_by_label, read_file_in_chunks, string_to_boolean, loadDataset
 from functionhelper.hyperboxadjustment import isOverlap, hyperboxOverlapTest, modifiedIsOverlap, hyperboxContraction
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from sklearn import metrics
 
 def get_num_cpu_cores():
     num_cores = multiprocessing.cpu_count()
@@ -203,7 +205,7 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                 OUTPUT
                     dic_results             a dictionary contains new coordinates of hyperboxes with labels as keys and values being a list of nprocs bunches of hyperboxe
         """
-        dic_results = dic_current_hyperboxes
+        dic_results = {}
         with ProcessPoolExecutor(max_workers=nprocs) as executor:
             for key in chunk_data:
                 futures = []
@@ -389,54 +391,48 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                     
         return no_predicted_samples_hyperboxes
     
-    def pruningHandling(self, valFile_Path, chunk_size, isPhase1 = True, accuracy_threshold = 0.5):
+    def pruningHandling(self, valFile_Path, nprocs = 4, accuracy_threshold = 0.5):
         """
             Pruning for hyperboxes in the current lists: V, W, classid, centroid
             Criteria:   The accuracy rate < 0.5
                         
                 INPUT
-                    chunk_size          The size of each reading chunk to be handled
+                    nprocs              The number of processes
                     valFile_Path        The path to the validation file including filename and its extension
                     accuracy_threshold  The minimum accuracy for each hyperbox
-                    isPhase1            True: Pruning using minPatternsPerBox, otherwise => do not use minPatternsPerBox
+                    
         """
-        # delete hyperboxes containing the number of patterns fewer than minPatternsPerBox
-#        currenNoHyperbox = len(self.classId)
-#        index_Kept = np.ones(currenNoHyperbox).astype(bool)
-#        isExistPrunedBox = False
-        
-#        if isPhase1 == True:
-#            for i in range(currenNoHyperbox):
-#                if self.no_pat[i] < minPatternsPerBox:
-#                    index_Kept[i] = False
-#                    isExistPrunedBox = True
-        
-#        if isExistPrunedBox == True:
-#            self.V = self.V[index_Kept]
-#            self.W = self.W[index_Kept]
-#            self.classId = self.classId[index_Kept]
-#            self.centroid = self.centroid[index_Kept]
-#            self.no_pat = self.no_pat[index_Kept]
         
         # pruning using validation set
         currenNoHyperbox = len(self.classId)
         if currenNoHyperbox > 0:
             # index_Kept = np.ones(currenNoHyperbox).astype(bool) # recompute the marking matrix
-            chunk_id = 0
             # init two lists containing number of patterns classified correctly and incorrectly for each hyperbox
             no_predicted_samples_hyperboxes = np.zeros((len(self.classId), 2))
             
-            while True:
-                # handle in chunks
-                chunk_data = read_file_in_chunks(valFile_Path, chunk_id, chunk_size)
-                if chunk_data != None:
-                    chunk_id = chunk_id + 1
-                    
-                    # carried validation
-                    no_predicted_samples_hyperboxes = self.predict_val(chunk_data.data, chunk_data.data, chunk_data.label, no_predicted_samples_hyperboxes)
-                else:
-                    break
+            lst_results = []
+            futures = []
             
+            _, Xval, _, patClassIdVal = loadDataset(valFile_Path, 0, False)
+            
+            with ProcessPoolExecutor(max_workers=nprocs) as executor:
+                chunksize = int(math.ceil(len(patClassIdVal) / float(nprocs)))
+                for i in range(nprocs):
+                    XlT = Xval[(chunksize * i) : (chunksize * (i + 1))]
+                    XuT = Xval[(chunksize * i) : (chunksize * (i + 1))]
+                    patClassId = patClassIdVal[(chunksize * i) : (chunksize * (i + 1))]
+                   
+                    futures.append(executor.submit(self.predict_val, XlT, XuT, patClassId, no_predicted_samples_hyperboxes))
+                # Instruct workers to process results as they come, when all are completed
+                as_completed(futures) # wait all workers completed:
+                for future in futures:
+                    lst_results.append(future.result())
+            
+            no_predicted_samples_hyperboxes = np.zeros((len(self.classId), 2))
+            # merging results returned from different processes
+            for pr in range(len(lst_results)):
+                no_predicted_samples_hyperboxes = no_predicted_samples_hyperboxes + lst_results[pr]
+                
             # pruning handling based on the validation results
             tmp_no_box = no_predicted_samples_hyperboxes.shape[0]
             accuracy_larger_half = np.zeros(tmp_no_box).astype(np.bool)
@@ -537,28 +533,29 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
         if (XlT is not None) and (len(self.classId) > 0):
             numTestSample = XlT.shape[0]
             
-            result_testing = self.predict_test(XlT, XuT, patClassIdTest)
+            result_testing = self.parallel_predict_test(nprocs, XlT, XuT, patClassIdTest)
             if (result_testing is not None) and file_object_save is not None:
                 file_object_save.write("Phase 1 before pruning: \n")
                 file_object_save.write("Number of testing samples = %d \n" % numTestSample)
                 file_object_save.write("Number of wrong predicted samples = %d \n" % result_testing.summis)
                 file_object_save.write("Error Rate = %f \n" % (np.round(result_testing.summis / numTestSample * 100, 4)))
+                file_object_save.write("AUC = %f \n" % result_testing.auc)
                 file_object_save.write("No. samples use centroid for prediction = %d \n" % result_testing.use_centroid)
                 file_object_save.write("No. samples use centroid but wrong prediction = %d \n" % result_testing.use_centroid_wrong)
             
-        
         if isPruning:
             time_start = time.perf_counter()
-            self.pruningHandling(valFile_Path, chunk_size, True, accuracyPerBox)
+            self.pruningHandling(valFile_Path, nprocs, accuracyPerBox)
             numBoxes_after_pruning = len(self.classId)
             self.phase1_elapsed_training_time = self.phase1_elapsed_training_time + (time.perf_counter() - time_start)
             
             if (XlT is not None) and len(self.classId) > 0:
-                result_testing = self.predict_test(XlT, XuT, patClassIdTest)
+                result_testing = self.parallel_predict_test(nprocs, XlT, XuT, patClassIdTest)
                 if result_testing is not None and file_object_save is not None:
                     file_object_save.write("Phase 1 after pruning: \n")
                     file_object_save.write("Number of wrong predicted samples = %d \n" % result_testing.summis)
                     file_object_save.write("Error Rate = %f \n" % (np.round(result_testing.summis / numTestSample * 100, 4)))
+                    file_object_save.write("AUC = %f \n" % result_testing.auc)
                     file_object_save.write("No. samples use centroid for prediction = %d \n" % result_testing.use_centroid)
                     file_object_save.write("No. samples use centroid but wrong prediction = %d \n" % result_testing.use_centroid_wrong)              
         
@@ -693,6 +690,8 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                 OUTPUT
                     V, W, classId, centroid, no_pat are adjusted                                          
         """
+        nprocs = get_num_cpu_cores() # get number of cores in cpu for handling data
+        
         self.phase2_elapsed_training_time = 0
         for teta in self.higher_teta:
             V = []
@@ -793,12 +792,13 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                     file_object_save.write("Num hyperboxes = %d \n" % len(self.classId))
                     file_object_save.write("Running time = %f \n" % sub_space_time)
                 # Do testing
-                result_testing = self.predict_test(XlT, XuT, patClassIdTest)
+                result_testing = self.parallel_predict_test(nprocs, XlT, XuT, patClassIdTest)
                 if (result_testing is not None) and (file_object_save is not None):
                     numTestSample = XlT.shape[0]  
                     file_object_save.write("Number of testing samples = %d \n" % numTestSample)
                     file_object_save.write("Number of wrong predicted samples = %d \n" % result_testing.summis)
                     file_object_save.write("Error Rate = %f \n" % (np.round(result_testing.summis / numTestSample * 100, 4)))
+                    file_object_save.write("AUC = %f \n" % result_testing.auc)
                     file_object_save.write("No. samples use centroid for prediction = %d \n" % result_testing.use_centroid)
                     file_object_save.write("No. samples use centroid but wrong prediction = %d \n" % result_testing.use_centroid_wrong)
                 
@@ -861,6 +861,93 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
         return result
     
     
+    def parallel_predict_test(self, nprocs, XlT, XuT, patClassIdTest):
+        """
+        GFMM classification with hyperboxes stored in self. V, W, classId, centroid, no_pat
+        For testing process
+    
+          result = parallel_predict_test(nprocs,XlT,XuT,patClassIdTest)
+    
+            INPUT
+              XlT               Test data lower bounds (rows = objects, columns = features)
+              XuT               Test data upper bounds (rows = objects, columns = features)
+              patClassIdTest    Test data class labels (crisp)
+              nprocs            Number of processes
+              
+           OUTPUT
+              result           A object with Bunch datatype containing all results as follows:
+                                  + summis           Number of misclassified objects
+                                  + misclass         Binary error map
+                                  + mem              Hyperbox memberships
+                                  + use_centroid     The number of patterns must use centroid to make prediction
+                                  + use_centroid_wrong  The number of patterns uses centroid to mak prediction but still get wrong result
+    
+        """
+        lst_results = []
+        futures = []
+        
+        with ProcessPoolExecutor(max_workers=nprocs) as executor:
+            chunksize = int(math.ceil(len(patClassIdTest) / float(nprocs)))
+            for i in range(nprocs):
+                XlT_i = XlT[(chunksize * i) : (chunksize * (i + 1))]
+                XuT_i = XuT[(chunksize * i) : (chunksize * (i + 1))]
+                patClassId_i = patClassIdTest[(chunksize * i) : (chunksize * (i + 1))]
+                futures.append(executor.submit(self.predict_test, XlT_i, XuT_i, patClassId_i))
+            # Instruct workers to process results as they come, when all are completed
+            as_completed(futures) # wait all workers completed:
+            for future in futures:
+                lst_results.append(future.result())
+        
+        summis = 0
+        misclass = np.array([])
+        pred_score = np.array([])
+        real_class = np.array([])
+        mem = np.array([])
+        numPatUsingCentroid = 0
+        numPatUsingCentroidWrong = 0
+        
+        for i in range(len(lst_results)):
+            summis = summis + lst_results[i].summis
+            numPatUsingCentroid = numPatUsingCentroid + lst_results[i].use_centroid
+            numPatUsingCentroidWrong = numPatUsingCentroidWrong + lst_results[i].use_centroid_wrong
+            if len(mem) == 0:
+                mem = np.array(lst_results[i].mem)
+            else:
+                mem = np.vstack((mem, lst_results[i].mem))
+            
+            if len(misclass) == 0:
+                misclass = np.array(lst_results[i].misclass)
+            else:
+                misclass = np.append(misclass, lst_results[i].misclass)
+                
+            if len(pred_score) == 0:
+                pred_score = np.array(lst_results[i].pred_score)
+            else:
+                pred_score = np.append(pred_score, lst_results[i].pred_score)
+                
+            if len(real_class) == 0:
+                real_class = np.array(lst_results[i].real_class)
+            else:
+                real_class = np.append(real_class, lst_results[i].real_class)
+        
+        auc = 0
+        unique_label = np.unique(self.classId)
+        if len(unique_label) == 2:
+            numEle_c1 = len(np.nonzero(self.classId == unique_label[0])[0])
+            numEle_c2 = len(np.nonzero(self.classId == unique_label[1])[0])
+            if numEle_c1 < numEle_c2:
+                positive_label = unique_label[0]
+            else:
+                positive_label = unique_label[1]
+                
+            fpr, tpr, _ = metrics.roc_curve(real_class, pred_score, pos_label=positive_label)
+            auc = metrics.auc(fpr, tpr)
+            
+        result = Bunch(summis = summis, misclass = misclass, mem = mem, use_centroid=numPatUsingCentroid, use_centroid_wrong=numPatUsingCentroidWrong, auc = auc)
+        
+        return result
+        
+    
     def predict_test(self, XlT, XuT, patClassIdTest):
         """
         GFMM classification with hyperboxes stored in self. V, W, classId, centroid, no_pat
@@ -894,6 +981,20 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
         mem = np.zeros((yX, self.V.shape[0]))
         numPatUsingCentroid = 0
         numPatUsingCentroidWrong = 0
+        pred_score = np.array([])
+        unique_label = np.unique(self.classId)
+        isComputeAUC = False
+        save_real_class_test = np.array(patClassIdTest)
+        if len(unique_label) == 2:
+            pred_score = np.zeros(yX)
+            isComputeAUC = True
+            numEle_c1 = len(np.nonzero(self.classId == unique_label[0])[0])
+            numEle_c2 = len(np.nonzero(self.classId == unique_label[1])[0])
+            if numEle_c1 < numEle_c2:
+                positive_label = unique_label[0]
+            else:
+                positive_label = unique_label[1]
+                
         # classifications
         for i in range(yX):
             mem[i, :] = memberG(XlT[i, :], XuT[i, :], self.V, self.W, self.gamma, self.oper) # calculate memberships for all hyperboxes
@@ -903,9 +1004,15 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
             if len(maxVind) == 1:
                 # only one hyperbox with the highest membership value
                 if self.classId[maxVind[0]] == patClassIdTest[i]:
-                    misclass[i] = False              
+                    misclass[i] = False
                 else:
                     misclass[i] = True
+                    
+                if isComputeAUC == True:
+                    if self.classId[maxVind[0]] == positive_label:
+                        pred_score[i] = bmax
+                    else:
+                        pred_score[i] = 1 - bmax                  
             
             else:
                 # More than one hyperbox with the highest membership value => compare with centroid
@@ -917,6 +1024,12 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                         misclass[i] = False              
                     else:
                         misclass[i] = True
+                    
+                    if isComputeAUC == True:
+                        if self.classId[maxVind[0]] == positive_label:
+                            pred_score[i] = bmax
+                        else:
+                            pred_score[i] = 1 - bmax 
                 else:
                     # at least one pair of hyperboxes with different class => compare the centroid
                     numPatUsingCentroid = numPatUsingCentroid + 1
@@ -937,10 +1050,16 @@ class Info_Presentation_Multi_Layer_Classifier_GFMM(object):
                         numPatUsingCentroidWrong = numPatUsingCentroidWrong + 1
                     else:
                         misclass[i] = False
+                    
+                    if isComputeAUC == True:
+                        if self.classId[id_min] == positive_label:
+                            pred_score[i] = 1
+                        else:
+                            pred_score[i] = 0
         # results
         summis = np.sum(misclass).astype(np.int64)
     
-        result = Bunch(summis = summis, misclass = misclass, mem = mem, use_centroid=numPatUsingCentroid, use_centroid_wrong=numPatUsingCentroidWrong)
+        result = Bunch(summis = summis, misclass = misclass, mem = mem, use_centroid=numPatUsingCentroid, use_centroid_wrong=numPatUsingCentroidWrong, pred_score = pred_score, real_class = save_real_class_test)
         
         return result
     
@@ -1016,9 +1135,9 @@ if __name__ == '__main__':
     core = get_num_cpu_cores()
     
     if type_chunk == 1:
-        pathFileSaveData = '../Experiment/NewAlg/' + str(core) + '_hete_result_' + os.path.basename(training_file)
+        pathFileSaveData = '../Experiment/NewAlg/New_' + str(core) + '_hete_result_' + os.path.basename(training_file)
     else:
-        pathFileSaveData = '../Experiment/NewAlg/' + str(core) + '_homo_result_' + os.path.basename(training_file)
+        pathFileSaveData = '../Experiment/NewAlg/New_' + str(core) + '_homo_result_' + os.path.basename(training_file)
     
     # Read testing file
     _, Xtest, _, patClassIdTest = loadDataset(testing_file, 0, False)
@@ -1029,7 +1148,7 @@ if __name__ == '__main__':
         file_object_save.write("\n\n Time %d \n" % (exe_time + 1))
     
         classifier = Info_Presentation_Multi_Layer_Classifier_GFMM(teta = teta_list, gamma = gamma, simil_thres = simil_thres, oper = oper)
-        
+        print('Finish first stage')
         classifier.granular_phase_one_classifier(training_file, chunk_size, type_chunk, isPruning, validation_file, accuracyPerBox, Xtest, Xtest, patClassIdTest, file_object_save)
         
         if len(classifier.classId) > 0:
@@ -1049,6 +1168,8 @@ if __name__ == '__main__':
         
         
         
+
+
 
 
 

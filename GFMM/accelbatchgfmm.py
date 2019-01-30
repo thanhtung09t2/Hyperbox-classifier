@@ -45,7 +45,7 @@ except:
 
 from functionhelper.preprocessinghelper import loadDataset, string_to_boolean
 from functionhelper.drawinghelper import drawbox
-from functionhelper.hyperboxadjustment import isOverlap
+from functionhelper.hyperboxadjustment import isOverlap, modifiedIsOverlap
 from GFMM.basebatchlearninggfmm import BaseBatchLearningGFMM
 from functionhelper.membershipcalc import asym_similarity_one_many, memberG
 
@@ -147,13 +147,28 @@ class AccelBatchGFMM(BaseBatchLearningGFMM):
                         # agglomorate pairewise_maxb(i, 0) and pairewise_maxb(i, 1) by adjusting pairewise_maxb(i, 0)
                         # remove pairewise_maxb(i, 1) by getting newV from 1 -> pairewise_maxb(i, 0) - 1, new coordinates for pairewise_maxb(i, 0), from pairewise_maxb(i, 0) + 1 -> pairewise_maxb(i, 1) - 1, pairewise_maxb(i, 1) + 1 -> end
                         
-                        newV = np.concatenate((self.V[:int(pairewise_maxb[i, 0])], np.minimum(self.V[int(pairewise_maxb[i, 0])], self.V[int(pairewise_maxb[i, 1])]).reshape(1, -1), self.V[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.V[int(pairewise_maxb[i, 1]) + 1:]), axis=0)
-                        newW = np.concatenate((self.W[:int(pairewise_maxb[i, 0])], np.maximum(self.W[int(pairewise_maxb[i, 0])], self.W[int(pairewise_maxb[i, 1])]).reshape(1, -1), self.W[int(pairewise_maxb[i, 0]) + 1:int(pairewise_maxb[i, 1])], self.W[int(pairewise_maxb[i, 1]) + 1:]), axis=0)
-                        newClassId = np.concatenate((self.classId[:int(pairewise_maxb[i, 1])], self.classId[int(pairewise_maxb[i, 1]) + 1:]))
-                        
+                        # TODO: Improve it by change row pairewise_maxb[i, 0], after that using mask and mark pairewise_maxb[i, 1] = false => Slicing
+                        row1 = int(pairewise_maxb[i, 0])
+                        row2 = int(pairewise_maxb[i, 1])
+                        newV = np.concatenate((self.V[:row1], np.minimum(self.V[row1], self.V[row2]).reshape(1, -1), self.V[row1 + 1:row2], self.V[row2 + 1:]), axis=0)
+                        newW = np.concatenate((self.W[:row1], np.maximum(self.W[row1], self.W[row2]).reshape(1, -1), self.W[row1 + 1:row2], self.W[row2 + 1:]), axis=0)
+                        newClassId = np.concatenate((self.classId[:row2], self.classId[row2 + 1:]))
+
+#                        index_remain = np.ones(len(self.classId)).astype(np.bool)
+#                        index_remain[row2] = False
+#                        newV = self.V[index_remain]
+#                        newW = self.W[index_remain]
+#                        newClassId = self.classId[index_remain]
+#                        if row1 < row2:
+#                            tmp_row = row1
+#                        else:
+#                            tmp_row = row1 - 1
+#                        newV[tmp_row] = np.minimum(self.V[row1], self.V[row2])
+#                        newW[tmp_row] = np.maximum(self.W[row1], self.W[row2])
+                       
                         # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
                         # position of adjustment is pairewise_maxb[i, 0] in new bounds
-                        if (not isOverlap(newV, newW, int(pairewise_maxb[i, 0]), newClassId)) and (((newW[int(pairewise_maxb[i, 0])] - newV[int(pairewise_maxb[i, 0])]) <= self.teta).all() == True):
+                        if (not modifiedIsOverlap(newV, newW, int(pairewise_maxb[i, 0]), newClassId)) and (((newW[int(pairewise_maxb[i, 0])] - newV[int(pairewise_maxb[i, 0])]) <= self.teta).all() == True):
                             self.V = newV
                             self.W = newW
                             self.classId = newClassId
@@ -265,7 +280,8 @@ if __name__ == '__main__':
         sing = 'max'
     else:
         sing = sys.argv[12]
-        
+    
+    start_t = time.perf_counter()
     if sys.argv[1] == '1':
         training_file = sys.argv[2]
         testing_file = sys.argv[3]
@@ -282,9 +298,11 @@ if __name__ == '__main__':
     
     classifier = AccelBatchGFMM(gamma, teta, bthres, simil, sing, isDraw, oper, isNorm, norm_range)
     classifier.fit(Xtr, Xtr, patClassIdTr)
+    end_t = time.perf_counter()
     print('V size = ', classifier.V.shape)
     print('W size = ', classifier.W.shape)
-    print("Training Time = ", classifier.elapsed_training_time)
+    print("Only Training Time = ", classifier.elapsed_training_time)
+    print("Reading file + Training Time = ", end_t - start_t)
     
     # Testing
     print("-- Testing --")

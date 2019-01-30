@@ -151,9 +151,24 @@ class BatchGFMMV1(BaseBatchLearningGFMM):
                 curmaxb = maxb[0, :] # current position handling
                 
                 # calculate new coordinates of curmaxb(0)-th hyperbox by including curmaxb(1)-th box, scrap the latter and leave the rest intact
-                newV = np.concatenate((self.V[0:int(curmaxb[0]), :], np.minimum(self.V[int(curmaxb[0]), :], self.V[int(curmaxb[1]), :]).reshape(1, -1), self.V[int(curmaxb[0]) + 1:int(curmaxb[1]), :], self.V[int(curmaxb[1]) + 1:, :]), axis=0)
-                newW = np.concatenate((self.W[0:int(curmaxb[0]), :], np.maximum(self.W[int(curmaxb[0]), :], self.W[int(curmaxb[1]), :]).reshape(1, -1), self.W[int(curmaxb[0]) + 1:int(curmaxb[1]), :], self.W[int(curmaxb[1]) + 1:, :]),axis=0)
-                newClassId = np.concatenate((self.classId[0:int(curmaxb[1])], self.classId[int(curmaxb[1]) + 1:]))
+                row1 = int(curmaxb[0])
+                row2 = int(curmaxb[1])
+                newV = np.concatenate((self.V[0:row1, :], np.minimum(self.V[row1, :], self.V[row2, :]).reshape(1, -1), self.V[row1 + 1:row2, :], self.V[row2 + 1:, :]), axis=0)
+                newW = np.concatenate((self.W[0:row1, :], np.maximum(self.W[row1, :], self.W[row2, :]).reshape(1, -1), self.W[row1 + 1:row2, :], self.W[row2 + 1:, :]), axis=0)
+                newClassId = np.concatenate((self.classId[0:row2], self.classId[row2 + 1:]))
+                
+#                index_remain = np.ones(len(self.classId)).astype(np.bool)
+#                index_remain[row2] = False
+#                newV = self.V[index_remain]
+#                newW = self.W[index_remain]
+#                newClassId = self.classId[index_remain]
+#                if row1 < row2:
+#                    tmp_row = row1
+#                else:
+#                    tmp_row = row1 - 1
+#                newV[tmp_row] = np.minimum(self.V[row1], self.V[row2])
+#                newW[tmp_row] = np.maximum(self.W[row1], self.W[row2])
+                       
                 
                 # adjust the hyperbox if no overlap and maximum hyperbox size is not violated
                 if (not isOverlap(newV, newW, int(curmaxb[0]), newClassId)) and (((newW[int(curmaxb[0])] - newV[int(curmaxb[0])]) <= self.teta).all() == True):

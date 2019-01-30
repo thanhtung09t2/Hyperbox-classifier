@@ -329,7 +329,7 @@ if __name__ == '__main__':
         norm_range = ast.literal_eval(sys.argv[10])
 
     # print('isDraw = ', isDraw, ' teta = ', teta, ' teta_min = ', teta_min, ' gamma = ', gamma, ' oper = ', oper, ' isNorm = ', isNorm, ' norm_range = ', norm_range)
-
+    start_t = time.perf_counter()
     if sys.argv[1] == '1':
         training_file = sys.argv[2]
         testing_file = sys.argv[3]
@@ -346,9 +346,11 @@ if __name__ == '__main__':
 
     classifier = OnlineGFMM(gamma, teta, teta_min, isDraw, oper, isNorm, norm_range)
     classifier.fit(Xtr, Xtr, patClassIdTr)
+    end_t = time.perf_counter()
     print('V size = ', classifier.V.shape)
     print('W size = ', classifier.W.shape)
-    print("Training Time = ", classifier.elapsed_training_time)
+    print("Only Training Time = ", classifier.elapsed_training_time)
+    print("Reading file + Training Time = ", end_t - start_t)
     
     # Testing
     print("-- Testing --")
